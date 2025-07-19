@@ -1,0 +1,24 @@
+# Node modules
+node_modules/
+
+# Ortam değişkenleri
+.env
+
+# Log dosyaları
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# İşletim sistemi / editör dosyaları
+.DS_Store
+Thumbs.db
+
+# Coverage ve test çıktıları
+coverage/
+*.lcov
+
+# Production build (eğer ayrı dizinde build yaparsan)
+dist/
+build/
