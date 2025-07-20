@@ -58,11 +58,7 @@ const UploadPage = () => {
           <button onClick={() => window.location.href = '/login'} className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300">Giriş Yap</button>
           <button onClick={() => window.location.href = '/register'} className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300">Kayıt Ol</button>
         </div>
-      ) : (
-        <div className="mb-4 flex gap-4">
-          <a href="/files" className="text-blue-500 underline">Dosya Listesi</a>
-        </div>
-      )}
+      ) : null}
 
       <h1 className="text-xl font-bold mb-2">NodeFlow Dosya Yükleme</h1>
       {isAuthenticated ? (

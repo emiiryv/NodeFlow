@@ -1,5 +1,6 @@
 import express from 'express';
 import {
+  getUserStats,
   getUserProfile,
   updateUserProfile,
   deleteUser
@@ -16,5 +17,11 @@ router.put('/me', authenticate, updateUserProfile);
 
 // Delete user account
 router.delete('/me', authenticate, deleteUser);
+
+// Get user statistics
+
+// Get stats for current user only
+router.get('/stats/me', authenticate, getUserStats);
+router.get('/stats', authenticate, getUserStats);
 
 export default router;
