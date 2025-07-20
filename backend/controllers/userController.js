@@ -1,0 +1,78 @@
+import prisma from '../models/db.js';
+
+// Get profile of current user
+export const getUserProfile = async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
+    }
+
+    res.status(200).json({ user });
+  } catch (error) {
+    console.error('Profil alınırken hata:', error);
+    res.status(500).json({ message: 'Profil alınırken hata oluştu.' });
+  }
+};
+
+// Admin: list all users
+export const getAllUsers = async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.status(200).json({ users });
+  } catch (error) {
+    console.error('Kullanıcı listesi alınırken hata:', error);
+    res.status(500).json({ message: 'Kullanıcı listesi alınırken hata oluştu.' });
+  }
+};
+
+// Delete current user
+export const deleteUser = async (req, res) => {
+  try {
+    const deleted = await prisma.user.delete({
+      where: { id: req.user.id },
+    });
+
+    res.status(200).json({ message: 'Kullanıcı hesabı silindi.' });
+  } catch (error) {
+    console.error('Kullanıcı silinirken hata:', error);
+    res.status(500).json({ message: 'Kullanıcı silinirken bir hata oluştu.' });
+  }
+};
+
+// Update current user
+export const updateUserProfile = async (req, res) => {
+  try {
+    const { name, email } = req.body;
+
+    const updated = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { name, email },
+    });
+
+    res.status(200).json({ message: 'Kullanıcı profili güncellendi.', user: updated });
+  } catch (error) {
+    console.error('Kullanıcı güncellenirken hata:', error);
+    res.status(500).json({ message: 'Kullanıcı güncellenirken bir hata oluştu.' });
+  }
+};

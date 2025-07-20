@@ -21,6 +21,9 @@ model File {
   uploadedAt DateTime @default(now())
   uploaderIp String?
 
+  userId   Int?
+  user     user?    @relation(fields: [userId], references: [id])
+
   videos     Video[]
   accessLogs AccessLog[]
 
@@ -48,4 +51,16 @@ model AccessLog {
   userAgent String?
 
   @@map("access_log")
+}
+
+model user {
+  id       Int     @id @default(autoincrement())
+  name     String?
+  username String  @unique
+  email    String  @unique
+  password String
+  role     String  @default("user")
+  createdAt DateTime @default(now())
+
+  files    File[]
 }

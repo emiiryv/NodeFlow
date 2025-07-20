@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from '../api/axiosInstance';
 
 const UploadPage = () => {
@@ -6,6 +6,14 @@ const UploadPage = () => {
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      setIsAuthenticated(true);
+    }
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -45,27 +53,40 @@ const UploadPage = () => {
 
   return (
     <div className="p-4">
-      <div className="mb-4">
-        <a href="/files" className="text-blue-500 underline">Dosya Listesi</a>
-      </div>
-      <h1 className="text-xl font-bold mb-2">NodeFlow Dosya Yükleme</h1>
-      <input type="file" onChange={handleFileChange} className="mb-2" />
-      <button
-        onClick={handleUpload}
-        className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
-        disabled={!file || isUploading}
-      >
-        {isUploading ? 'Yükleniyor...' : 'Yükle'}
-      </button>
-      {error && <p className="text-red-600 mt-2">{error}</p>}
-
-      {uploadedUrl && (
-        <div className="mt-4">
-          <p>Yüklenen dosya:</p>
-          <a href={uploadedUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-            {uploadedUrl}
-          </a>
+      {!isAuthenticated ? (
+        <div className="mb-4 flex gap-4">
+          <button onClick={() => window.location.href = '/login'} className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300">Giriş Yap</button>
+          <button onClick={() => window.location.href = '/register'} className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300">Kayıt Ol</button>
         </div>
+      ) : (
+        <div className="mb-4 flex gap-4">
+          <a href="/files" className="text-blue-500 underline">Dosya Listesi</a>
+        </div>
+      )}
+
+      <h1 className="text-xl font-bold mb-2">NodeFlow Dosya Yükleme</h1>
+      {isAuthenticated ? (
+        <>
+          <input type="file" onChange={handleFileChange} className="mb-2" />
+          <button
+            onClick={handleUpload}
+            className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
+            disabled={!file || isUploading}
+          >
+            {isUploading ? 'Yükleniyor...' : 'Yükle'}
+          </button>
+          {error && <p className="text-red-600 mt-2">{error}</p>}
+          {uploadedUrl && (
+            <div className="mt-4">
+              <p>Yüklenen dosya:</p>
+              <a href={uploadedUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                {uploadedUrl}
+              </a>
+            </div>
+          )}
+        </>
+      ) : (
+        <p className="text-red-500 mt-2">Yükleme işlemi için lütfen giriş yapın.</p>
       )}
     </div>
   );

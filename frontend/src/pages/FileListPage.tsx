@@ -1,6 +1,5 @@
-
-
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from '../api/axiosInstance';
 
 interface FileItem {
@@ -16,6 +15,15 @@ const FileListPage = () => {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+    }
+  }, [navigate]);
 
   const fetchFiles = async () => {
     try {

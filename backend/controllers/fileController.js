@@ -5,6 +5,7 @@ export const handleFileUpload = async (req, res) => {
   try {
     const file = req.file;
     const uploaderIp = req.ip || req.connection.remoteAddress;
+    const userId = req.user?.userId;
 
     const uploadResult = await uploadToAzure(file, uploaderIp);
 
@@ -14,7 +15,8 @@ export const handleFileUpload = async (req, res) => {
         url: uploadResult.url,
         size: uploadResult.size,
         uploaderIp: uploadResult.uploaderIp,
-        uploadedAt: new Date()
+        uploadedAt: new Date(),
+        userId: userId,
       }
     });
 
@@ -31,26 +33,38 @@ export const handleFileUpload = async (req, res) => {
   }
 };
 
-export const getAllFiles = async (req, res) => {
+export const getUserFiles = async (req, res) => {
   try {
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+
     const files = await prisma.file.findMany({
+      where: { userId },
       include: { videos: true, accessLogs: true },
+      orderBy: { uploadedAt: 'desc' },
     });
     res.json(files);
   } catch (error) {
-    console.error('Failed to fetch files:', error);
+    console.error('Failed to fetch user files:', error);
     res.status(500).json({ message: 'Error retrieving files.' });
   }
 };
 
 export const getFileById = async (req, res) => {
   const { id } = req.params;
+  const userId = req.user?.userId;
   try {
     const file = await prisma.file.findUnique({
       where: { id: Number(id) },
       include: { videos: true, accessLogs: true },
     });
+
     if (!file) return res.status(404).json({ message: 'File not found.' });
+
+    if (file.userId !== userId) {
+      return res.status(403).json({ message: 'Access denied.' });
+    }
+
     res.json(file);
   } catch (error) {
     console.error('Failed to fetch file:', error);
@@ -60,10 +74,16 @@ export const getFileById = async (req, res) => {
 
 export const deleteFileById = async (req, res) => {
   const { id } = req.params;
+  const userId = req.user?.userId;
+
   try {
     const file = await prisma.file.findUnique({ where: { id: Number(id) } });
     if (!file) {
       return res.status(404).json({ message: 'File not found.' });
+    }
+
+    if (file.userId !== userId) {
+      return res.status(403).json({ message: 'Access denied.' });
     }
 
     await prisma.video.deleteMany({ where: { fileId: Number(id) } });
@@ -82,7 +102,17 @@ export const deleteFileById = async (req, res) => {
 export const updateFileName = async (req, res) => {
   const { id } = req.params;
   const { filename } = req.body;
+  const userId = req.user?.userId;
+
   try {
+    const file = await prisma.file.findUnique({ where: { id: Number(id) } });
+
+    if (!file) return res.status(404).json({ message: 'File not found.' });
+
+    if (file.userId !== userId) {
+      return res.status(403).json({ message: 'Access denied.' });
+    }
+
     const updated = await prisma.file.update({
       where: { id: Number(id) },
       data: { filename },
