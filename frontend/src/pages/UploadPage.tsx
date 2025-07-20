@@ -45,6 +45,9 @@ const UploadPage = () => {
 
   return (
     <div className="p-4">
+      <div className="mb-4">
+        <a href="/files" className="text-blue-500 underline">Dosya Listesi</a>
+      </div>
       <h1 className="text-xl font-bold mb-2">NodeFlow Dosya Yükleme</h1>
       <input type="file" onChange={handleFileChange} className="mb-2" />
       <button

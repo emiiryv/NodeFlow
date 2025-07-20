@@ -36,4 +36,16 @@ async function uploadToAzure({ originalname, buffer, mimetype, size }, uploaderI
   };
 }
 
-export { uploadToAzure };
+async function deleteFromAzure(blobUrl) {
+  try {
+    const url = new URL(blobUrl);
+    const blobName = decodeURIComponent(url.pathname.split('/').pop());
+    const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+    await blockBlobClient.deleteIfExists();
+  } catch (error) {
+    console.error('Azure blob silinirken hata:', error);
+    throw new Error('Blob silme işlemi başarısız.');
+  }
+}
+
+export { uploadToAzure, deleteFromAzure };

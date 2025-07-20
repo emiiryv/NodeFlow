@@ -1,4 +1,4 @@
-import { uploadToAzure } from '../services/azureService.js';
+import { uploadToAzure, deleteFromAzure } from '../services/azureService.js';
 import prisma from '../models/db.js';
 
 export const handleFileUpload = async (req, res) => {
@@ -61,9 +61,17 @@ export const getFileById = async (req, res) => {
 export const deleteFileById = async (req, res) => {
   const { id } = req.params;
   try {
+    const file = await prisma.file.findUnique({ where: { id: Number(id) } });
+    if (!file) {
+      return res.status(404).json({ message: 'File not found.' });
+    }
+
     await prisma.video.deleteMany({ where: { fileId: Number(id) } });
     await prisma.accessLog.deleteMany({ where: { fileId: Number(id) } });
+
+    await deleteFromAzure(file.url);
     await prisma.file.delete({ where: { id: Number(id) } });
+
     res.json({ message: 'File deleted successfully.' });
   } catch (error) {
     console.error('Failed to delete file:', error);
