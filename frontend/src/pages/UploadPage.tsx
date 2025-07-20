@@ -4,6 +4,8 @@ import axios from '../api/axiosInstance';
 const UploadPage = () => {
   const [file, setFile] = useState<File | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -17,15 +19,27 @@ const UploadPage = () => {
     const formData = new FormData();
     formData.append('file', file);
 
+    setIsUploading(true);
+    setError(null);
+
     try {
       const res = await axios.post('/files/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-      setUploadedUrl(res.data.data.blobUri);
+      console.log('Upload response:', res.data);
+
+      const blobUrl = res.data?.blobUri || res.data?.file?.url;
+      if (blobUrl) {
+        setUploadedUrl(blobUrl);
+      } else {
+        setError('Yükleme başarılı ancak Azure URL’si alınamadı.');
+      }
     } catch (err) {
       console.error('Yükleme hatası:', err);
-      alert('Upload failed.');
+      setError('Upload failed.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -33,9 +47,14 @@ const UploadPage = () => {
     <div className="p-4">
       <h1 className="text-xl font-bold mb-2">NodeFlow Dosya Yükleme</h1>
       <input type="file" onChange={handleFileChange} className="mb-2" />
-      <button onClick={handleUpload} className="bg-blue-500 text-white px-4 py-2 rounded">
-        Yükle
+      <button
+        onClick={handleUpload}
+        className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
+        disabled={!file || isUploading}
+      >
+        {isUploading ? 'Yükleniyor...' : 'Yükle'}
       </button>
+      {error && <p className="text-red-600 mt-2">{error}</p>}
 
       {uploadedUrl && (
         <div className="mt-4">

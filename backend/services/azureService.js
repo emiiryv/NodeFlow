@@ -1,5 +1,7 @@
-const { BlobServiceClient } = require('@azure/storage-blob');
-require('dotenv').config();
+// services/azureService.js
+import { BlobServiceClient } from '@azure/storage-blob';
+import dotenv from 'dotenv';
+dotenv.config();
 
 const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
 const CONTAINER_NAME = process.env.AZURE_CONTAINER_NAME;
@@ -7,15 +9,31 @@ const CONTAINER_NAME = process.env.AZURE_CONTAINER_NAME;
 const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
 const containerClient = blobServiceClient.getContainerClient(CONTAINER_NAME);
 
-async function uploadToAzure(file) {
-  const blobName = `${Date.now()}-${file.originalname}`;
+async function uploadToAzure({ originalname, buffer, mimetype, size }, uploaderIp) {
+  if (!originalname || !buffer || !mimetype || typeof size !== 'number') {
+    throw new Error('Invalid file object provided to uploadToAzure.');
+  }
+
+  const blobName = `${Date.now()}-${originalname}`;
   const blockBlobClient = containerClient.getBlockBlobClient(blobName);
 
-  await blockBlobClient.uploadData(file.buffer, {
-    blobHTTPHeaders: { blobContentType: file.mimetype }
+  await blockBlobClient.uploadData(buffer, {
+    blobHTTPHeaders: { blobContentType: mimetype }
   });
 
-  return blockBlobClient.url;
+  const url = blockBlobClient.url;
+
+  if (!url) {
+    throw new Error('Blob URL could not be retrieved after upload.');
+  }
+
+  return {
+    filename: originalname,
+    url,
+    size,
+    uploaderIp,
+    uploadedAt: new Date()
+  };
 }
 
-module.exports = { uploadToAzure };
+export { uploadToAzure };
