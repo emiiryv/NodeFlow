@@ -9,6 +9,7 @@ interface FileItem {
   url: string;
   uploadedAt: string;
   size: number;
+  mimetype: string;
 }
 
 const FileListPage = () => {
@@ -47,19 +48,26 @@ const FileListPage = () => {
       {error && <p className="text-red-600">{error}</p>}
       <ul>
         {files.map((file) => (
-          <li key={file.id} className="mb-3 border-b pb-2">
-            <div className="flex justify-between items-center">
-              <a href={file.url} target="_blank" rel="noreferrer" className="text-blue-600 underline">
-                {file.filename}
-              </a>
+          <li key={file.id} className="mb-4 border-b pb-3">
+            <div className="flex justify-between items-start">
+              <div className="flex flex-col">
+                <a href={file.url} target="_blank" rel="noreferrer" className="text-blue-600 underline font-medium">
+                  {file.filename}
+                </a>
+                <div className="text-sm text-gray-600">
+                  Tür: {file.mimetype} | Boyut: {(file.size / 1024).toFixed(2)} KB
+                </div>
+                <div className="text-sm text-gray-600">
+                  Yükleme Tarihi: {new Date(file.uploadedAt).toLocaleString()}
+                </div>
+              </div>
               <button
                 onClick={() => deleteFile(file.id)}
-                className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 h-fit"
               >
                 Sil
               </button>
             </div>
-            <div className="text-sm text-gray-600">Yükleme Tarihi: {new Date(file.uploadedAt).toLocaleString()}</div>
           </li>
         ))}
       </ul>
