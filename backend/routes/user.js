@@ -3,7 +3,8 @@ import {
   getUserStats,
   getUserProfile,
   updateUserProfile,
-  deleteUser
+  deleteUser,
+  changeUserPassword
 } from '../controllers/userController.js';
 import { authenticate } from '../middlewares/authMiddleware.js';
 
@@ -23,5 +24,8 @@ router.delete('/me', authenticate, deleteUser);
 // Get stats for current user only
 router.get('/stats/me', authenticate, getUserStats);
 router.get('/stats', authenticate, getUserStats);
+
+// Change user password
+router.put('/change-password', authenticate, changeUserPassword);
 
 export default router;

@@ -5,6 +5,7 @@ import UploadPage from './pages/UploadPage';
 import FileListPage from './pages/FileListPage';
 import LoginRegisterPage from './pages/LoginRegisterPage';
 import UserStatsPage from './pages/UserStatsPage';
+import UserProfilePage from './pages/UserProfilePage';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
           <Route path="/login" element={<LoginRegisterPage />} />
           <Route path="/register" element={<LoginRegisterPage />} />
           <Route path="/stats" element={<UserStatsPage />} />
+          <Route path="/profile" element={<UserProfilePage />} />
         </Routes>
       </div>
     </BrowserRouter>

@@ -77,6 +77,42 @@ export const updateUserProfile = async (req, res) => {
   }
 };
 
+// Change user password
+import bcrypt from 'bcrypt';
+
+export const changeUserPassword = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Mevcut ve yeni şifre zorunludur.' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Mevcut şifre yanlış.' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword }
+    });
+
+    res.status(200).json({ message: 'Şifre başarıyla güncellendi.' });
+  } catch (error) {
+    console.error('Şifre değiştirme hatası:', error);
+    res.status(500).json({ message: 'Şifre değiştirilirken hata oluştu.' });
+  }
+};
+
 // Get user statistics
 export const getUserStats = async (req, res) => {
   try {

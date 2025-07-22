@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
@@ -36,6 +34,7 @@ const Navbar: React.FC = () => {
           <div className="flex gap-4 items-center">
             <Link to="/files" className="hover:text-gray-300">Dosyalar</Link>
             <Link to="/stats" className="hover:text-gray-300">İstatistikler</Link>
+            <Link to="/profile" className="hover:text-gray-300">Profil</Link>
             <button onClick={handleLogout} className="bg-red-500 px-3 py-1 rounded hover:bg-red-600">
               Çıkış Yap
             </button>
