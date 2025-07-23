@@ -4,13 +4,14 @@ import prisma from '../models/db.js';
 export const getUserProfile = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
-      where: { id: req.user.userId },
+      where: { id: req.user.userId, tenantId: req.user.tenantId },
       select: {
         id: true,
         name: true,
         email: true,
         role: true,
-        createdAt: true
+        createdAt: true,
+        tenantId: true
       },
     });
 
@@ -29,6 +30,7 @@ export const getUserProfile = async (req, res) => {
 export const getAllUsers = async (req, res) => {
   try {
     const users = await prisma.user.findMany({
+      where: { tenantId: req.user.tenantId },
       select: {
         id: true,
         name: true,
@@ -117,15 +119,16 @@ export const changeUserPassword = async (req, res) => {
 export const getUserStats = async (req, res) => {
   try {
     const userId = req.user.userId;
+    const tenantId = req.user.tenantId;
 
     const [totalFiles, totalSizeResult, latestFile] = await Promise.all([
-      prisma.file.count({ where: { userId } }),
+      prisma.file.count({ where: { userId, tenantId } }),
       prisma.file.aggregate({
-        where: { userId },
+        where: { userId, tenantId },
         _sum: { size: true },
       }),
       prisma.file.findFirst({
-        where: { userId },
+        where: { userId, tenantId },
         orderBy: { uploadedAt: 'desc' },
         select: { uploadedAt: true },
       }),

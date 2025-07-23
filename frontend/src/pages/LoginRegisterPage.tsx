@@ -6,7 +6,7 @@ type AuthMode = 'login' | 'register';
 
 const LoginRegisterPage: React.FC = () => {
   const [mode, setMode] = useState<AuthMode>(() => window.location.pathname.includes('login') ? 'login' : 'register');
-  const [formData, setFormData] = useState({ name: '', username: '', email: '', password: '' });
+  const [formData, setFormData] = useState({ name: '', username: '', email: '', password: '', tenantId: '' });
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -26,7 +26,13 @@ const LoginRegisterPage: React.FC = () => {
     const payload =
       mode === 'login'
         ? { email: formData.email, password: formData.password }
-        : formData;
+        : {
+            name: formData.name,
+            username: formData.username,
+            email: formData.email,
+            password: formData.password,
+            tenantId: formData.tenantId,
+          };
 
     try {
       const response = await axios.post(endpoint, payload);
@@ -61,6 +67,14 @@ const LoginRegisterPage: React.FC = () => {
               name="username"
               placeholder="Kullanıcı Adı"
               value={formData.username}
+              onChange={handleChange}
+              required
+            />
+            <input
+              type="text"
+              name="tenantId"
+              placeholder="Tenant ID"
+              value={formData.tenantId}
               onChange={handleChange}
               required
             />

@@ -33,6 +33,7 @@ const Navbar: React.FC = () => {
         {isLoggedIn ? (
           <div className="flex gap-4 items-center">
             <Link to="/files" className="hover:text-gray-300">Dosyalar</Link>
+            <Link to="/tenant-files" className="hover:text-gray-300">Tenant Dosyaları</Link>
             <Link to="/stats" className="hover:text-gray-300">İstatistikler</Link>
             <Link to="/profile" className="hover:text-gray-300">Profil</Link>
             <button onClick={handleLogout} className="bg-red-500 px-3 py-1 rounded hover:bg-red-600">

@@ -18,7 +18,11 @@ export const verifyToken = async (req, res, next) => {
     if (!user) {
       return res.status(401).json({ message: 'Kullanıcı bulunamadı.' });
     }
-    req.user = { userId: user.id };
+    req.user = {
+      userId: user.id,
+      tenantId: user.tenantId,
+      role: user.role
+    };
     next();
   } catch (err) {
     console.error('Token doğrulama hatası:', err);

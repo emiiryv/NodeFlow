@@ -43,6 +43,7 @@ export const handleUpload = async (req, res) => {
         uploaderIp: req.ip,
         uploadedAt: azureUploadResult.uploadedAt,
         userId: req.user?.userId || null,
+        tenantId: req.user?.tenantId || null,
       },
     });
 

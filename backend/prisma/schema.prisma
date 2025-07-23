@@ -24,6 +24,9 @@ model File {
   userId   Int?
   user     user?    @relation(fields: [userId], references: [id])
 
+  tenantId Int?
+  tenant   Tenant?  @relation(fields: [tenantId], references: [id])
+
   videos     Video[]
   accessLogs AccessLog[]
 
@@ -54,13 +57,23 @@ model AccessLog {
 }
 
 model user {
-  id       Int     @id @default(autoincrement())
-  name     String?
-  username String  @unique
-  email    String  @unique
-  password String
-  role     String  @default("user")
+  id        Int      @id @default(autoincrement())
+  name      String?
+  username  String   @unique
+  email     String   @unique
+  password  String
+  role      String   @default("user")
   createdAt DateTime @default(now())
 
-  files    File[]
+  tenantId  Int?
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id])
+
+  files     File[]
+}
+
+model Tenant {
+  id     Int    @id @default(autoincrement())
+  name   String
+  users  user[]
+  files  File[]
 }

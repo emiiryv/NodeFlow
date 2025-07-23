@@ -5,7 +5,7 @@ const getVideoByFileId = async (req, res) => {
   try {
     const { fileId } = req.params;
     const video = await prisma.video.findUnique({
-      where: { fileId: parseInt(fileId) }
+      where: { fileId: Number(fileId) }
     });
 
     if (!video) {
@@ -24,7 +24,7 @@ const createVideoMetadata = async (req, res) => {
     const { fileId, duration, format, resolution } = req.body;
     const video = await prisma.video.create({
       data: {
-        fileId: parseInt(fileId),
+        fileId: Number(fileId),
         duration: duration !== null ? parseFloat(duration) : null,
         format,
         resolution
@@ -40,6 +40,11 @@ const createVideoMetadata = async (req, res) => {
 const getAllVideos = async (req, res) => {
   try {
     const videos = await prisma.video.findMany({
+      where: {
+        file: {
+          tenantId: req.user.tenantId
+        }
+      },
       include: { file: true }
     });
     res.json(videos);
@@ -53,7 +58,7 @@ const deleteVideoById = async (req, res) => {
   try {
     const { id } = req.params;
     await prisma.video.delete({
-      where: { id: parseInt(id) }
+      where: { id: Number(id) }
     });
     res.status(204).send();
   } catch (error) {

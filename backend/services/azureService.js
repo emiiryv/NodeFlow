@@ -9,13 +9,13 @@ const CONTAINER_NAME = process.env.AZURE_CONTAINER_NAME;
 const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
 const containerClient = blobServiceClient.getContainerClient(CONTAINER_NAME);
 
-async function uploadToAzure(file, uploaderIp) {
+async function uploadToAzure(file, uploaderIp, tenantId) {
   const { originalname, buffer, mimetype, size } = file;
   if (!originalname || !buffer || !mimetype || !Buffer.isBuffer(buffer) || typeof size !== 'number') {
     throw new Error('Invalid file object provided to uploadToAzure.');
   }
 
-  const blobName = `${Date.now()}-${originalname}`;
+  const blobName = `${tenantId}/${Date.now()}-${originalname}`;
   const blockBlobClient = containerClient.getBlockBlobClient(blobName);
 
   await blockBlobClient.uploadData(buffer, {

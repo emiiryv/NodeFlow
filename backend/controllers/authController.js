@@ -1,5 +1,3 @@
-
-
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import prisma from '../models/db.js';
@@ -8,7 +6,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_key';
 
 export const register = async (req, res) => {
   try {
-    const { email, password, name, username } = req.body;
+    const { email, password, name, username, tenantId } = req.body;
 
     if (!email || !password || !name || !username) {
       return res.status(400).json({ message: 'Tüm alanlar zorunludur.' });
@@ -20,12 +18,24 @@ export const register = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    let tenantIdToUse = tenantId ? Number(tenantId) : null;
+
+    if (!tenantIdToUse) {
+      const newTenant = await prisma.tenant.create({
+        data: {
+          name: `${username}'s Workspace`
+        }
+      });
+      tenantIdToUse = newTenant.id;
+    }
+    // Create the user and associate with the tenant
     const user = await prisma.user.create({
       data: {
         email,
         name,
         username,
         password: hashedPassword,
+        tenantId: tenantIdToUse,
       },
     });
 
@@ -54,7 +64,7 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: 'Geçersiz kimlik bilgileri.' });
     }
 
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user.id, tenantId: user.tenantId }, JWT_SECRET, { expiresIn: '7d' });
 
     res.status(200).json({ message: 'Giriş başarılı.', token });
   } catch (error) {

@@ -6,6 +6,7 @@ export const handleFileUpload = async (req, res) => {
     const file = req.file;
     const uploaderIp = req.ip || req.connection.remoteAddress;
     const userId = req.user?.userId;
+    const tenantId = req.user?.tenantId;
 
     const uploadResult = await uploadToAzure(file, uploaderIp);
 
@@ -17,6 +18,7 @@ export const handleFileUpload = async (req, res) => {
         uploaderIp: uploadResult.uploaderIp,
         uploadedAt: new Date(),
         userId: userId,
+        tenantId: tenantId
       }
     });
 
@@ -39,7 +41,10 @@ export const getUserFiles = async (req, res) => {
     if (!userId) return res.status(401).json({ message: 'Unauthorized' });
 
     const files = await prisma.file.findMany({
-      where: { userId },
+      where: {
+        tenantId: req.user?.tenantId,
+        userId: req.user?.userId
+      },
       include: { videos: true, accessLogs: true },
       orderBy: { uploadedAt: 'desc' },
     });
@@ -61,7 +66,7 @@ export const getFileById = async (req, res) => {
 
     if (!file) return res.status(404).json({ message: 'File not found.' });
 
-    if (file.userId !== userId) {
+    if (file.tenantId !== req.user?.tenantId) {
       return res.status(403).json({ message: 'Access denied.' });
     }
 
@@ -82,7 +87,7 @@ export const deleteFileById = async (req, res) => {
       return res.status(404).json({ message: 'File not found.' });
     }
 
-    if (file.userId !== userId) {
+    if (file.tenantId !== req.user?.tenantId) {
       return res.status(403).json({ message: 'Access denied.' });
     }
 
@@ -109,7 +114,7 @@ export const updateFileName = async (req, res) => {
 
     if (!file) return res.status(404).json({ message: 'File not found.' });
 
-    if (file.userId !== userId) {
+    if (file.tenantId !== req.user?.tenantId) {
       return res.status(403).json({ message: 'Access denied.' });
     }
 
@@ -121,5 +126,24 @@ export const updateFileName = async (req, res) => {
   } catch (error) {
     console.error('Failed to update file name:', error);
     res.status(500).json({ message: 'Error updating file name.' });
+  }
+};
+export const getTenantFiles = async (req, res) => {
+  try {
+    const tenantId = req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({ message: 'Tenant ID bulunamadı.' });
+    }
+
+    const files = await prisma.file.findMany({
+      where: { tenantId },
+      include: { videos: true, accessLogs: true },
+      orderBy: { uploadedAt: 'desc' },
+    });
+
+    res.json(files);
+  } catch (error) {
+    console.error('Tenant dosyaları getirme hatası:', error);
+    res.status(500).json({ message: 'Tenant dosyaları alınamadı.' });
   }
 };

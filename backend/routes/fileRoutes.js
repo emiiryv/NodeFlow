@@ -3,6 +3,7 @@ import multer from 'multer';
 import { handleUpload } from '../controllers/uploadController.js';
 import {
   getUserFiles,
+  getTenantFiles,
   getFileById,
   updateFileName,
   deleteFileById
@@ -15,6 +16,7 @@ const router = express.Router();
 router.post('/upload', verifyToken, upload.single('file'), handleUpload);
 
 router.get('/', verifyToken, getUserFiles);
+router.get('/tenant', verifyToken, getTenantFiles);
 router.get('/:id', verifyToken, getFileById);
 router.put('/:id', verifyToken, updateFileName);
 router.delete('/:id', verifyToken, deleteFileById);
