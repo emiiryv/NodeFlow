@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import fileRoutes from './routes/fileRoutes.js';
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/user.js';
+import adminRoutes from './routes/adminRoutes.js';
 
 dotenv.config();
 
@@ -22,5 +23,6 @@ app.use(morgan('dev'));
 app.use('/api/files', fileRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/admin', adminRoutes);
 
 export default app;

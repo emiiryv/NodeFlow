@@ -7,6 +7,9 @@ import LoginRegisterPage from './pages/LoginRegisterPage';
 import UserStatsPage from './pages/UserStatsPage';
 import UserProfilePage from './pages/UserProfilePage';
 import TenantFilesPage from './pages/TenantFilesPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
+import AdminFileManagementPage from './pages/AdminFileManagementPage';
+import AdminUserManagementPage from './pages/AdminUserManagementPage';
 
 function App() {
   return (
@@ -21,6 +24,9 @@ function App() {
           <Route path="/stats" element={<UserStatsPage />} />
           <Route path="/profile" element={<UserProfilePage />} />
           <Route path="/tenant-files" element={<TenantFilesPage />} />
+          <Route path="/admin" element={<AdminDashboardPage />} />
+          <Route path="/admin/file-management" element={<AdminFileManagementPage />} />
+          <Route path="/admin/user-management" element={<AdminUserManagementPage />} />
         </Routes>
       </div>
     </BrowserRouter>

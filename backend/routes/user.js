@@ -1,3 +1,4 @@
+import { isAdmin, isTenantAdmin } from '../middlewares/roleMiddleware.js';
 import express from 'express';
 import {
   getUserStats,
@@ -23,7 +24,10 @@ router.delete('/me', authenticate, deleteUser);
 
 // Get stats for current user only
 router.get('/stats/me', authenticate, getUserStats);
-router.get('/stats', authenticate, getUserStats);
+router.get('/stats', authenticate, (req, res, next) => {
+  if (req.user?.role === 'admin') return next();
+  return isTenantAdmin(req, res, next);
+}, getUserStats);
 
 // Change user password
 router.put('/change-password', authenticate, changeUserPassword);

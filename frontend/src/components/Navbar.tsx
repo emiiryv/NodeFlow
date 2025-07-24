@@ -1,26 +1,40 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import axios from '../api/axiosInstance';
+
 
 const Navbar: React.FC = () => {
   const navigate = useNavigate();
 
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(!!localStorage.getItem('token'));
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleStorageChange = () => {
-      setIsLoggedIn(!!localStorage.getItem('token'));
+    const fetchUser = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        setIsLoggedIn(true);
+        try {
+          const res = await axios.get('/users/me');
+          setUserRole(res.data.user?.role || null);
+        } catch (err) {
+          console.error('Kullanıcı bilgisi alınamadı:', err);
+          setUserRole(null);
+        }
+      } else {
+        setIsLoggedIn(false);
+        setUserRole(null);
+      }
     };
 
-    window.addEventListener('storage', handleStorageChange);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
+    fetchUser();
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    setIsLoggedIn(false);
+    setUserRole(null);
     navigate('/login');
   };
 
@@ -35,6 +49,13 @@ const Navbar: React.FC = () => {
             <Link to="/files" className="hover:text-gray-300">Dosyalar</Link>
             <Link to="/tenant-files" className="hover:text-gray-300">Tenant Dosyaları</Link>
             <Link to="/stats" className="hover:text-gray-300">İstatistikler</Link>
+            {userRole === 'admin' || userRole === 'tenantadmin' ? (
+              <>
+                <Link to="/admin" className="hover:text-gray-300">Admin Paneli</Link>
+                <Link to="/admin/user-management" className="hover:text-gray-300">Kullanıcı Yönetimi</Link>
+                <Link to="/admin/file-management" className="hover:text-gray-300">Dosya Yönetimi</Link>
+              </>
+            ) : null}
             <Link to="/profile" className="hover:text-gray-300">Profil</Link>
             <button onClick={handleLogout} className="bg-red-500 px-3 py-1 rounded hover:bg-red-600">
               Çıkış Yap
