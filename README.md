@@ -1,7 +1,8 @@
 # 🌐 NodeFlow
 
-**NodeFlow**, dosya barındırma ve video streaming altyapısı sunan modern bir Node.js tabanlı web uygulamasıdır.  
-Projede Azure Blob Storage, akıllı video yükleme, indirme logları, sıkıştırma ve gerçek zamanlı streaming gibi gelişmiş özellikler desteklenmektedir.
+**NodeFlow**, dosya barındırma ve video streaming altyapısı sunan, tenant bazlı çok kullanıcılı mimariye sahip modern bir Node.js tabanlı web uygulamasıdır.  
+Projede Azure Blob Storage, akıllı video yükleme, indirme logları, sıkıştırma ve gerçek zamanlı streaming gibi gelişmiş özellikler desteklenmektedir.  
+Ayrıca hem admin hem de tenant yöneticileri için özel bir panel arayüzü sunar.
 
 ---
 
@@ -51,21 +52,64 @@ Projede Azure Blob Storage, akıllı video yükleme, indirme logları, sıkışt
 
 ## 📦 Kurulum
 
-### 🖥️ Backend
+### 🖥️ Backend Kurulumu
 ```bash
 cd backend
 npm install
 cp .env.example .env
-# .env dosyasını doldurmayı unutma
+# .env dosyasını aşağıdaki örneğe göre doldurun
+npx prisma migrate dev --name init
 npm start
 ```
 
-### 🌐 Frontend
+### 🌐 Frontend Kurulumu
 ```bash
 cd frontend
 npm install
 cp .env.example .env
+# FRONTEND_URL ve REACT_APP_API_URL değerlerini backend'e göre ayarlayın
 npm start
+```
+
+### 🌍 .env Örneği
+```env
+PORT=3000
+AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=...;AccountName=...;AccountKey=...;
+AZURE_CONTAINER_NAME=nodeflow
+DB_HOST=localhost
+DB_USER=postgres
+DB_PASSWORD=yourpassword
+DB_DATABASE=nodeflow
+DATABASE_URL=postgresql://postgres:yourpassword@localhost:5432/nodeflow
+FRONTEND_URL=http://localhost:3001
+JWT_SECRET=supersecretkey
+```
+
+---
+
+## 🗄️ Veritabanı ve Prisma
+
+> Not: PostgreSQL veritabanını manuel olarak oluşturmanız gerekir. Aşağıdaki SQL komutu ile yeni bir veritabanı oluşturabilirsiniz:
+```sql
+CREATE DATABASE nodeflow;
+```
+Ardından `.env` dosyasındaki `DATABASE_URL` değeri bu veritabanına uygun şekilde ayarlanmalıdır.
+
+### 🧬 Role Enum:
+- `user`, `tenantadmin`, `admin` rolleri desteklenmektedir.
+
+### 🧩 Tablolar:
+- `user`: kullanıcı bilgileri (username, email, password, role)
+- `tenant`: tenant adları ve ilişkili kullanıcı/dosyalar
+- `file`: dosya bilgileri ve ilişkili kullanıcı/tenant
+- `video`: video metadata (format, süre, çözünürlük)
+- `access_log`: erişim zamanı, IP ve kullanıcı ajanı
+
+### 🔧 Gerekli Komutlar:
+```bash
+npx prisma generate        # Prisma client oluştur
+npx prisma migrate dev     # Veritabanı tablolarını oluştur
+npx prisma studio          # Veritabanını görsel olarak görüntüle (opsiyonel)
 ```
 
 ---
