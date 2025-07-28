@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import axios from '../api/axiosInstance';
 
 interface User {
@@ -17,6 +17,8 @@ const AdminUserManagementPage: React.FC = () => {
   const [role, setRole] = useState<string>('');
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editData, setEditData] = useState({ name: '', username: '', email: '' });
+  const [tenants, setTenants] = useState<{ id: number; name: string }[]>([]);
+  const [selectedTenantId, setSelectedTenantId] = useState<number | null>(null);
 
   const handleDelete = async (userId: number) => {
     if (!window.confirm('Bu kullanıcıyı silmek istediğinize emin misiniz?')) return;
@@ -60,25 +62,39 @@ const AdminUserManagementPage: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const resMe = await axios.get('/users/me');
-        const role = resMe.data.user?.role || '';
-        setRole(role);
+  const fetchUsers = useCallback(async () => {
+    try {
+      const resMe = await axios.get('/users/me');
+      const role = resMe.data.user?.role || '';
+      setRole(role);
 
-        const endpoint = role === 'admin' ? '/admin/users' : '/admin/users/tenant';
-        const resUsers = await axios.get(endpoint);
-        setUsers(resUsers.data.users || []);
-      } catch (err) {
-        setError('Kullanıcılar alınırken bir hata oluştu.');
-      } finally {
-        setLoading(false);
+      if (role === 'admin') {
+        const resTenants = await axios.get('/admin/tenants');
+        setTenants(resTenants.data || []);
       }
-    };
 
+      const endpoint =
+        role === 'admin'
+          ? selectedTenantId
+            ? `/admin/users?tenantId=${selectedTenantId}`
+            : '/admin/users'
+          : '/admin/users/tenant';
+      const resUsers = await axios.get(endpoint);
+      setUsers(resUsers.data.users || []);
+    } catch (err) {
+      setError('Kullanıcılar alınırken bir hata oluştu.');
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedTenantId]);
+
+  useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
+
+  useEffect(() => {
+    if (role === 'admin') fetchUsers();
+  }, [fetchUsers, role]);
 
   if (loading || !role) return <p>Yükleniyor...</p>;
 
@@ -86,6 +102,23 @@ const AdminUserManagementPage: React.FC = () => {
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Kullanıcı Yönetimi</h1>
       {error && <p className="text-red-600">{error}</p>}
+      {role === 'admin' && (
+        <div className="mb-4">
+          <label className="mr-2 font-medium">Tenant:</label>
+          <select
+            className="border border-gray-300 px-2 py-1"
+            value={selectedTenantId || ''}
+            onChange={(e) => setSelectedTenantId(e.target.value ? Number(e.target.value) : null)}
+          >
+            <option value="">Tüm Tenantlar</option>
+            {tenants.map((tenant) => (
+              <option key={tenant.id} value={tenant.id}>
+                {tenant.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <table className="w-full border-collapse border border-gray-300">
         <thead>
           <tr className="bg-gray-100">

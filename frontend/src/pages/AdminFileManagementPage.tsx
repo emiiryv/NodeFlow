@@ -24,8 +24,11 @@ const AdminFileManagementPage: React.FC = () => {
   const [error, setError] = useState('');
   const [userRole, setUserRole] = useState<string>('');
 
+  const [tenants, setTenants] = useState<{ id: number; name: string }[]>([]);
+  const [selectedTenantId, setSelectedTenantId] = useState<number | null>(null);
+
   useEffect(() => {
-    const fetchFiles = async () => {
+    const fetchUserRoleAndTenants = async () => {
       try {
         const userRes = await axios.get('/users/me');
         const role = userRes.data.user?.role || userRes.data.role;
@@ -36,24 +39,60 @@ const AdminFileManagementPage: React.FC = () => {
           return;
         }
 
-        const endpoint = role === 'admin' ? '/admin/files' : '/admin/files/tenant';
+        if (role === 'admin') {
+          const tenantRes = await axios.get('/admin/tenants');
+          setTenants(tenantRes.data || []);
+        }
+      } catch (err) {
+        console.error(err);
+        setError('Kullanıcı bilgileri alınırken hata oluştu.');
+      }
+    };
+    fetchUserRoleAndTenants();
+  }, []);
+
+  useEffect(() => {
+    if (!userRole) return;
+    const fetchFiles = async () => {
+      setLoading(true);
+      try {
+        const baseEndpoint = userRole === 'admin' ? '/admin/files' : '/admin/files/tenant';
+        const endpoint = userRole === 'admin' && selectedTenantId
+          ? `${baseEndpoint}?tenantId=${selectedTenantId}`
+          : baseEndpoint;
         const res = await axios.get(endpoint);
         setFiles(res.data || []);
       } catch (err) {
-        console.error(err);
         setError('Dosyalar alınırken hata oluştu.');
       } finally {
         setLoading(false);
       }
     };
     fetchFiles();
-  }, []);
+  }, [userRole, selectedTenantId]);
 
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">
         Dosya Yönetimi ({userRole === 'tenantadmin' ? 'Tenant Admin' : 'Admin'})
       </h1>
+      {userRole === 'admin' && (
+        <div className="mb-4">
+          <label className="mr-2 font-medium">Tenant:</label>
+          <select
+            className="border border-gray-300 px-2 py-1"
+            value={selectedTenantId || ''}
+            onChange={(e) => setSelectedTenantId(e.target.value ? Number(e.target.value) : null)}
+          >
+            <option value="">Tüm Tenantlar</option>
+            {tenants.map((tenant) => (
+              <option key={tenant.id} value={tenant.id}>
+                {tenant.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       {loading && <p>Yükleniyor...</p>}
       {error && <p className="text-red-500">{error}</p>}
       {!loading && files.length === 0 && <p>Hiç dosya bulunamadı.</p>}

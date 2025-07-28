@@ -47,7 +47,9 @@ const Navbar: React.FC = () => {
         {isLoggedIn ? (
           <div className="flex gap-4 items-center">
             <Link to="/files" className="hover:text-gray-300">Dosyalar</Link>
-            <Link to="/tenant-files" className="hover:text-gray-300">Tenant Dosyaları</Link>
+            {userRole !== 'admin' && (
+              <Link to="/tenant-files" className="hover:text-gray-300">Tenant Dosyaları</Link>
+            )}
             <Link to="/stats" className="hover:text-gray-300">İstatistikler</Link>
             {userRole === 'admin' || userRole === 'tenantadmin' ? (
               <>

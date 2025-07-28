@@ -5,9 +5,14 @@ export const getAllUsers = async (req, res) => {
   try {
     const role = req.user?.role;
     const tenantId = req.user?.tenantId;
+    const tenantIdParam = req.query.tenantId;
 
     const users = await prisma.user.findMany({
-      where: role === 'tenantadmin' ? { tenantId } : {},
+      where: role === 'tenantadmin'
+        ? { tenantId }
+        : tenantIdParam
+        ? { tenantId: Number(tenantIdParam) }
+        : {},
       select: {
         id: true,
         name: true,
@@ -31,9 +36,14 @@ export const getAdminFiles = async (req, res) => {
   try {
     const role = req.user?.role;
     const tenantId = req.user?.tenantId;
+    const tenantIdParam = req.query.tenantId;
 
     const files = await prisma.file.findMany({
-      where: role === 'tenantadmin' ? { tenantId } : {},
+      where: role === 'tenantadmin'
+        ? { tenantId }
+        : tenantIdParam
+        ? { tenantId: Number(tenantIdParam) }
+        : {},
       include: {
         user: { select: { id: true, name: true, email: true } },
         tenant: { select: { id: true, name: true } }
@@ -160,5 +170,24 @@ export const getTenantUsers = async (req, res) => {
   } catch (error) {
     console.error('getTenantUsers error:', error);
     res.status(500).json({ message: 'Kullanıcılar alınamadı.' });
+  }
+};
+
+// Admin: Tüm tenantları getir
+export const getAllTenants = async (req, res) => {
+  try {
+    const tenants = await prisma.tenant.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+      orderBy: {
+        name: 'asc',
+      }
+    });
+    res.json(tenants);
+  } catch (error) {
+    console.error('getAllTenants error:', error);
+    res.status(500).json({ message: 'Tenantlar alınamadı.' });
   }
 };

@@ -8,10 +8,14 @@ import {
   getTenantAdminFiles,
   deleteFileById,
   updateUserById,
-  deleteUserById
+  deleteUserById,
+  getAllTenants
 } from '../controllers/adminController.js';
 
 const router = express.Router();
+
+// Tenants
+router.get('/tenants', authenticate, isAdmin, getAllTenants);
 
 // Users
 router.get('/users', authenticate, isAdmin, getAllUsers);
