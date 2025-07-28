@@ -1,5 +1,3 @@
-
-
 import prisma from '../models/db.js';
 
 // Admin veya Tenant Admin: Tüm kullanıcıları getir
@@ -63,12 +61,71 @@ export const deleteUserById = async (req, res) => {
   }
 };
 
+// Admin veya TenantAdmin: Kullanıcı bilgilerini güncelle
+export const updateUserById = async (req, res) => {
+  const { id } = req.params;
+  const { name, email, username } = req.body;
+
+  const userRole = req.user?.role;
+  const tenantId = req.user?.tenantId;
+
+  if (userRole !== 'admin' && userRole !== 'tenantadmin') {
+    return res.status(403).json({ message: 'Yetkisiz erişim.' });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: Number(id) },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
+    }
+
+    // Tenant admin sadece kendi tenant kullanıcılarını güncelleyebilir
+    if (userRole === 'tenantadmin' && user.tenantId !== tenantId) {
+      return res.status(403).json({ message: 'Bu kullanıcıya erişiminiz yok.' });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: Number(id) },
+      data: { name, email, username },
+    });
+
+    res.json(updatedUser);
+  } catch (error) {
+    console.error('updateUserById error:', error);
+    res.status(500).json({ message: 'Kullanıcı güncellenemedi.' });
+  }
+};
+
 // Admin: Dosya sil
 export const deleteFileById = async (req, res) => {
   const { id } = req.params;
 
+  const userRole = req.user?.role;
+  const tenantId = req.user?.tenantId;
+
+  if (userRole !== 'admin' && userRole !== 'tenantadmin') {
+    return res.status(403).json({ message: 'Yetkisiz erişim.' });
+  }
+
   try {
+    const file = await prisma.file.findUnique({
+      where: { id: Number(id) },
+    });
+
+    if (!file) {
+      return res.status(404).json({ message: 'Dosya bulunamadı.' });
+    }
+
+    // Tenant admin sadece kendi tenant dosyalarını silebilir
+    if (userRole === 'tenantadmin' && file.tenantId !== tenantId) {
+      return res.status(403).json({ message: 'Bu dosyaya erişiminiz yok.' });
+    }
+
     await prisma.file.delete({ where: { id: Number(id) } });
+
     res.json({ message: 'Dosya silindi.' });
   } catch (error) {
     console.error('deleteFileById error:', error);

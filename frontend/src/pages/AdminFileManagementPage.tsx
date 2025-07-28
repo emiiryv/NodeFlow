@@ -87,7 +87,24 @@ const AdminFileManagementPage: React.FC = () => {
                 <td className="py-2 px-4 border-b">{file.tenant?.name || '—'}</td>
               )}
               <td className="py-2 px-4 border-b">
-                <button className="text-red-600 hover:underline">Sil</button>
+                <button
+                  className="text-red-600 hover:underline"
+                  onClick={async () => {
+                    if (!window.confirm('Bu dosyayı silmek istediğinize emin misiniz?')) return;
+                    try {
+                      const deleteEndpoint = userRole === 'admin'
+                        ? `/admin/files/${file.id}`
+                        : `/admin/files/tenant/${file.id}`;
+                      await axios.delete(deleteEndpoint);
+                      setFiles(prev => prev.filter(f => f.id !== file.id));
+                    } catch (err) {
+                      console.error('Silme hatası:', err);
+                      alert('Dosya silinirken bir hata oluştu.');
+                    }
+                  }}
+                >
+                  Sil
+                </button>
               </td>
             </tr>
           ))}

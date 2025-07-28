@@ -18,7 +18,7 @@ const router = express.Router();
 router.post('/upload', verifyToken, upload.single('file'), handleUpload);
 
 router.get('/', verifyToken, getUserFiles);
-router.get('/tenant', verifyToken, isTenantAdmin, getTenantFiles);
+router.get('/tenant', verifyToken, getTenantFiles);
 router.get('/:id', verifyToken, getFileById);
 router.put('/:id', verifyToken, updateFileName);
 router.delete('/:id', verifyToken, deleteFileById);
