@@ -45,7 +45,7 @@ export const getUserFiles = async (req, res) => {
         tenantId: req.user?.tenantId,
         userId: req.user?.userId
       },
-      include: { videos: true, accessLogs: true },
+      include: { accessLogs: true },
       orderBy: { uploadedAt: 'desc' },
     });
     res.json(files);
@@ -61,7 +61,7 @@ export const getFileById = async (req, res) => {
   try {
     const file = await prisma.file.findUnique({
       where: { id: Number(id) },
-      include: { videos: true, accessLogs: true },
+      include: { accessLogs: true },
     });
 
     if (!file) return res.status(404).json({ message: 'File not found.' });
@@ -137,7 +137,7 @@ export const getTenantFiles = async (req, res) => {
 
     const files = await prisma.file.findMany({
       where: { tenantId },
-      include: { videos: true, accessLogs: true },
+      include: { accessLogs: true },
       orderBy: { uploadedAt: 'desc' },
     });
 

@@ -33,20 +33,33 @@ model File {
   tenantId Int?
   tenant   Tenant?  @relation(fields: [tenantId], references: [id])
 
-  videos     Video[]
   accessLogs AccessLog[]
+
+  videos    Video[]
 
   @@map("file")
 }
 
 model Video {
-  id         Int      @id @default(autoincrement())
-  file       File     @relation(fields: [fileId], references: [id])
-  fileId     Int
-  duration   Float?
-  format     String?
-  resolution String?
-  createdAt  DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  filename    String
+  url         String
+  size        Int
+  duration    Float?
+  format      String?
+  resolution  String?
+  uploadedAt  DateTime @default(now())
+
+  fileId      Int
+  file        File     @relation(fields: [fileId], references: [id])
+
+  tenantId    Int?
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id])
+
+  uploadedBy  Int?
+  user        user?    @relation("UserVideos", fields: [uploadedBy], references: [id])
 
   @@map("video")
 }
@@ -75,6 +88,7 @@ model user {
   tenant    Tenant?  @relation(fields: [tenantId], references: [id])
 
   files     File[]
+  videos    Video[]  @relation("UserVideos")
 }
 
 model Tenant {
@@ -82,4 +96,5 @@ model Tenant {
   name   String
   users  user[]
   files  File[]
+  videos Video[]
 }

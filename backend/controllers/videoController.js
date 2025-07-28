@@ -1,17 +1,35 @@
-const { PrismaClient } = require('../generated/prisma');
+import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
-const getVideoByFileId = async (req, res) => {
+// GET /videos
+const getVideos = async (req, res) => {
+  const role = req.user?.role;
+  const tenantId = req.user?.tenantId;
+
   try {
-    const { fileId } = req.params;
-    const video = await prisma.video.findUnique({
-      where: { fileId: Number(fileId) }
+    const videos = await prisma.video.findMany({
+      where:
+        role === 'admin'
+          ? {}
+          : { tenantId },
+      orderBy: { uploadedAt: 'desc' }
     });
 
-    if (!video) {
-      return res.status(404).json({ message: 'Video not found' });
-    }
+    res.json(videos);
+  } catch (error) {
+    console.error('Video fetch error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
 
+// GET /videos/:id
+const getVideoById = async (req, res) => {
+  try {
+    const video = await prisma.video.findUnique({
+      where: { id: Number(req.params.id) }
+    });
+
+    if (!video) return res.status(404).json({ message: 'Video not found' });
     res.json(video);
   } catch (error) {
     console.error('Video fetch error:', error);
@@ -19,57 +37,116 @@ const getVideoByFileId = async (req, res) => {
   }
 };
 
-const createVideoMetadata = async (req, res) => {
+// GET /videos/my
+const getMyVideos = async (req, res) => {
   try {
-    const { fileId, duration, format, resolution } = req.body;
-    const video = await prisma.video.create({
-      data: {
-        fileId: Number(fileId),
-        duration: duration !== null ? parseFloat(duration) : null,
-        format,
-        resolution
-      }
-    });
-    res.status(201).json(video);
-  } catch (error) {
-    console.error('Video metadata creation error:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-};
-
-const getAllVideos = async (req, res) => {
-  try {
+    const userId = req.user?.userId || req.user?.id;
     const videos = await prisma.video.findMany({
       where: {
-        file: {
-          tenantId: req.user.tenantId
-        }
+        uploadedBy: userId,
       },
-      include: { file: true }
+      orderBy: {
+        uploadedAt: 'desc',
+      },
     });
-    res.json(videos);
+
+    res.status(200).json(videos);
   } catch (error) {
-    console.error('Fetching all videos failed:', error);
+    console.error('Kullanıcı videoları alınamadı:', error);
+    res.status(500).json({ message: 'Videolar alınırken hata oluştu.' });
+  }
+};
+
+import { uploadToAzure } from '../services/azureService.js';
+import { extractMetadata } from '../config/videoMetaParser.js';
+import { compressVideoBuffer } from '../utils/videoProcessor.js';
+
+const uploadVideo = async (req, res) => {
+  const { title, description } = req.body;
+  const file = req.file;
+
+  if (!file) return res.status(400).json({ message: 'No video file uploaded' });
+
+  try {
+    // Compress if too large
+    const MAX_SIZE_MB = 200;
+    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+      const { buffer: compressedBuffer, size: compressedSize } = await compressVideoBuffer(file.buffer);
+      if (compressedBuffer) {
+        file.buffer = compressedBuffer;
+        file.size = compressedSize;
+      }
+    }
+
+    // Upload to Azure
+    const azureUploadResult = await uploadToAzure({
+      originalname: file.originalname,
+      buffer: file.buffer,
+      mimetype: file.mimetype,
+      size: file.size,
+    }, req.ip);
+
+    // Save file record
+    const newFile = await prisma.file.create({
+      data: {
+        filename: azureUploadResult.filename,
+        url: azureUploadResult.url,
+        size: azureUploadResult.size || null,
+        uploaderIp: req.ip,
+        uploadedAt: azureUploadResult.uploadedAt,
+        userId: req.user?.id || null,
+        tenantId: req.user?.tenantId || null,
+      },
+    });
+
+    // Extract metadata
+    const metadata = await extractMetadata(file.buffer);
+
+    const newVideo = await prisma.video.create({
+      data: {
+        fileId: newFile.id,
+        title,
+        description,
+        duration: metadata?.duration || null,
+        format: metadata?.format || null,
+        resolution: metadata?.resolution || null,
+        filename: newFile.filename,
+        url: newFile.url,
+        size: newFile.size,
+        uploadedBy: req.user?.userId || null,
+        tenantId: req.user?.tenantId || null,
+      },
+    });
+
+    res.status(201).json({
+      message: 'Video uploaded and metadata extracted successfully.',
+      file: newFile,
+      video: newVideo,
+      metadata: metadata || 'Metadata could not be extracted',
+    });
+  } catch (error) {
+    console.error('Video upload error:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
 
-const deleteVideoById = async (req, res) => {
+// DELETE /videos/:id
+const deleteVideo = async (req, res) => {
   try {
-    const { id } = req.params;
     await prisma.video.delete({
-      where: { id: Number(id) }
+      where: { id: Number(req.params.id) }
     });
     res.status(204).send();
   } catch (error) {
-    console.error('Deleting video failed:', error);
+    console.error('Video delete error:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
 
-module.exports = { 
-  getVideoByFileId, 
-  createVideoMetadata,
-  getAllVideos,
-  deleteVideoById
+export default {
+  getVideos,
+  getVideoById,
+  uploadVideo,
+  deleteVideo,
+  getMyVideos
 };

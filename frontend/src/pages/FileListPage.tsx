@@ -11,6 +11,19 @@ interface FileItem {
   mimetype: string;
 }
 
+interface VideoItem {
+  id: number;
+  title: string;
+  description?: string;
+  url: string;
+  uploadedAt: string;
+  duration?: number;
+  resolution?: string;
+  format?: string;
+  size: number;
+  filename: string;
+}
+
 const FileListPage = () => {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,6 +31,7 @@ const FileListPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingFile, setEditingFile] = useState<FileItem | null>(null);
   const [newFilename, setNewFilename] = useState('');
+  const [videos, setVideos] = useState<VideoItem[]>([]);
 
   const navigate = useNavigate();
 
@@ -39,6 +53,15 @@ const FileListPage = () => {
     }
   };
 
+  const fetchVideos = async () => {
+    try {
+      const response = await axios.get('/videos/my');
+      setVideos(response.data);
+    } catch (err) {
+      console.error('Videolar alınamadı.');
+    }
+  };
+
   const deleteFile = async (id: number) => {
     if (!window.confirm('Bu dosyayı silmek istediğinize emin misiniz?')) return;
     try {
@@ -57,7 +80,7 @@ const FileListPage = () => {
   const handleUpdateFilename = async () => {
     if (!editingFile) return;
     try {
-      const res = await axios.put(`/files/${editingFile.id}`, { filename: newFilename });
+      await axios.put(`/files/${editingFile.id}`, { filename: newFilename });
       setFiles((prev) =>
         prev.map((file) => (file.id === editingFile.id ? { ...file, filename: newFilename } : file))
       );
@@ -69,6 +92,7 @@ const FileListPage = () => {
 
   useEffect(() => {
     fetchFiles();
+    fetchVideos();
   }, []);
 
   return (
@@ -115,6 +139,27 @@ const FileListPage = () => {
               >
                 Sil
               </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <h1 className="text-2xl font-bold mt-8 mb-4">Yüklenen Videolar</h1>
+      <ul>
+        {videos.map((video) => (
+          <li key={video.id} className="mb-4 border-b pb-3">
+            <div className="flex flex-col">
+              <a href={video.url} target="_blank" rel="noreferrer" className="text-blue-600 font-medium underline">
+                {video.title}
+              </a>
+              <p className="text-sm text-gray-600 mt-1">
+                Süre: {video.duration?.toFixed(2)} sn | Çözünürlük: {video.resolution} | Format: {video.format}
+              </p>
+              <p className="text-sm text-gray-600">
+                Dosya: {video.filename} | {(video.size / 1024).toFixed(2)} KB
+              </p>
+              <p className="text-sm text-gray-600">
+                Yükleme Tarihi: {new Date(video.uploadedAt).toLocaleString()}
+              </p>
             </div>
           </li>
         ))}

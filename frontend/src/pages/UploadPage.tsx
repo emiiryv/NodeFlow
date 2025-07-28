@@ -7,6 +7,8 @@ const UploadPage = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -18,30 +20,52 @@ const UploadPage = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       setFile(e.target.files[0]);
+      setTitle('');
+      setDescription('');
     }
   };
 
   const handleUpload = async () => {
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append('file', file);
-
     setIsUploading(true);
     setError(null);
 
     try {
-      const res = await axios.post('/files/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      if (file.type.startsWith('video/')) {
+        const formData = new FormData();
+        formData.append('video', file);
+        formData.append('title', title);
+        formData.append('description', description);
 
-      console.log('Upload response:', res.data);
+        const res = await axios.post('/videos', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
 
-      const blobUrl = res.data?.blobUri || res.data?.file?.url;
-      if (blobUrl) {
-        setUploadedUrl(blobUrl);
+        console.log('Video upload response:', res.data);
+
+        const videoUrl = res.data?.blobUri || res.data?.video?.url;
+        if (videoUrl) {
+          setUploadedUrl(videoUrl);
+        } else {
+          setError('Yükleme başarılı ancak Azure URL’si alınamadı.');
+        }
       } else {
-        setError('Yükleme başarılı ancak Azure URL’si alınamadı.');
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const res = await axios.post('/files/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        console.log('Upload response:', res.data);
+
+        const blobUrl = res.data?.blobUri || res.data?.file?.url;
+        if (blobUrl) {
+          setUploadedUrl(blobUrl);
+        } else {
+          setError('Yükleme başarılı ancak Azure URL’si alınamadı.');
+        }
       }
     } catch (err) {
       console.error('Yükleme hatası:', err);
@@ -64,6 +88,23 @@ const UploadPage = () => {
       {isAuthenticated ? (
         <>
           <input type="file" onChange={handleFileChange} className="mb-2" />
+          {file && file.type.startsWith('video/') && (
+            <div className="mb-2">
+              <input
+                type="text"
+                placeholder="Başlık"
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                className="mb-2 w-full px-2 py-1 border rounded"
+              />
+              <textarea
+                placeholder="Açıklama"
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                className="w-full px-2 py-1 border rounded"
+              />
+            </div>
+          )}
           <button
             onClick={handleUpload}
             className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"

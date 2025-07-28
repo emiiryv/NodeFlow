@@ -26,7 +26,7 @@ export const compressVideoBuffer = async (buffer, mimetype = '') => {
         .videoCodec('libx264')
         .audioCodec('aac')
         .size('?x720')
-        .outputOptions('-preset fast')
+        .outputOptions('-preset', 'fast', '-movflags', '+faststart')
         .output(tempOutput)
         .on('end', resolve)
         .on('error', reject)

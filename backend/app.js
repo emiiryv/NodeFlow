@@ -6,6 +6,7 @@ import fileRoutes from './routes/fileRoutes.js';
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/user.js';
 import adminRoutes from './routes/adminRoutes.js';
+import videoRoutes from './routes/videoRoutes.js';
 
 dotenv.config();
 
@@ -24,5 +25,6 @@ app.use('/api/files', fileRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/videos', videoRoutes);
 
 export default app;

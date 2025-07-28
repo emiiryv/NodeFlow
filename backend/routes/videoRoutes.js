@@ -1,18 +1,15 @@
-const express = require('express');
+import express from 'express';
+import videoController from '../controllers/videoController.js';
+import { verifyToken } from '../middlewares/authMiddleware.js';
+import { isTenantAdmin, isAdmin } from '../middlewares/roleMiddleware.js';
+import { uploadVideo } from '../middlewares/uploadMiddleware.js';
+
 const router = express.Router();
-const videoController = require('../controllers/videoController');
-const { verifyToken } = require('../middlewares/authMiddleware');
-const { isTenantAdmin, isAdmin } = require('../middlewares/roleMiddleware');
 
-// Get video metadata by file ID
+router.get('/', verifyToken, videoController.getVideos);
+router.get('/my', verifyToken, videoController.getMyVideos);
+router.get('/:id', verifyToken, videoController.getVideoById);
+router.post('/', verifyToken, uploadVideo.single('video'), videoController.uploadVideo);
+router.delete('/:id', verifyToken, videoController.deleteVideo);
 
-// Get all videos with associated file info
-router.get('/', verifyToken, isTenantAdmin, videoController.getAllVideos);
-
-// Create video metadata
-router.post('/', verifyToken, isTenantAdmin, videoController.createVideoMetadata);
-
-// Delete video by ID
-router.delete('/:id', verifyToken, isAdmin, videoController.deleteVideoById);
-
-module.exports = router;
+export default router;
