@@ -71,6 +71,17 @@ const FileListPage = () => {
       setError('Dosya silinemedi.');
     }
   };
+
+  const deleteVideo = async (id: number) => {
+    if (!window.confirm('Bu videoyu silmek istediğinize emin misiniz?')) return;
+    try {
+      await axios.delete(`/videos/${id}`);
+      setVideos((prev) => prev.filter((video) => video.id !== id));
+    } catch (err) {
+      setError('Video silinemedi.');
+    }
+  };
+
   const handleEdit = (file: FileItem) => {
     setEditingFile(file);
     setNewFilename(file.filename);
@@ -160,6 +171,29 @@ const FileListPage = () => {
               <p className="text-sm text-gray-600">
                 Yükleme Tarihi: {new Date(video.uploadedAt).toLocaleString()}
               </p>
+              <div className="mt-1 flex gap-2">
+                <button
+                  onClick={() => window.open(video.url, '_blank')}
+                  className="text-sm text-green-600 underline hover:text-green-800"
+                >
+                  İndir
+                </button>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(video.url);
+                    alert('Bağlantı panoya kopyalandı!');
+                  }}
+                  className="text-sm text-blue-600 underline hover:text-blue-800"
+                >
+                  Bağlantıyı Kopyala
+                </button>
+                <button
+                  onClick={() => deleteVideo(video.id)}
+                  className="text-sm text-red-600 underline hover:text-red-800"
+                >
+                  Sil
+                </button>
+              </div>
             </div>
           </li>
         ))}

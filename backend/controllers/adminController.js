@@ -39,11 +39,18 @@ export const getAdminFiles = async (req, res) => {
     const tenantIdParam = req.query.tenantId;
 
     const files = await prisma.file.findMany({
-      where: role === 'tenantadmin'
-        ? { tenantId }
-        : tenantIdParam
-        ? { tenantId: Number(tenantIdParam) }
-        : {},
+      where: {
+        mimetype: {
+          not: {
+            startsWith: 'video/',
+          },
+        },
+        ...(role === 'tenantadmin'
+          ? { tenantId }
+          : tenantIdParam
+          ? { tenantId: Number(tenantIdParam) }
+          : {}),
+      },
       include: {
         user: { select: { id: true, name: true, email: true } },
         tenant: { select: { id: true, name: true } }
@@ -189,5 +196,75 @@ export const getAllTenants = async (req, res) => {
   } catch (error) {
     console.error('getAllTenants error:', error);
     res.status(500).json({ message: 'Tenantlar alınamadı.' });
+  }
+};
+
+// Admin veya TenantAdmin: Video sil
+export const deleteVideoById = async (req, res) => {
+  const { id } = req.params;
+
+  const userRole = req.user?.role;
+  const tenantId = req.user?.tenantId;
+
+  if (userRole !== 'admin' && userRole !== 'tenantadmin') {
+    return res.status(403).json({ message: 'Yetkisiz erişim.' });
+  }
+
+  try {
+    const video = await prisma.video.findUnique({
+      where: { id: Number(id) },
+      include: {
+        file: true,
+      },
+    });
+
+    if (!video) {
+      return res.status(404).json({ message: 'Video bulunamadı.' });
+    }
+
+    if (userRole === 'tenantadmin' && video.tenantId !== tenantId) {
+      return res.status(403).json({ message: 'Bu videoya erişiminiz yok.' });
+    }
+
+    await prisma.video.delete({ where: { id: Number(id) } });
+
+    // İlişkili dosyayı da sil
+    if (video.file) {
+      await prisma.file.delete({ where: { id: video.file.id } });
+    }
+
+    res.json({ message: 'Video silindi.' });
+  } catch (error) {
+    console.error('deleteVideoById error:', error);
+    res.status(500).json({ message: 'Video silinemedi.' });
+  }
+};
+// Admin veya TenantAdmin: Videoları getir
+export const getAdminVideos = async (req, res) => {
+  const role = req.user?.role;
+  const tenantId = req.user?.tenantId;
+  const tenantIdParam = req.query.tenantId;
+
+  try {
+    const videos = await prisma.video.findMany({
+      where: {
+        ...(role === 'tenantadmin'
+          ? { tenantId }
+          : tenantIdParam
+          ? { tenantId: Number(tenantIdParam) }
+          : {}),
+      },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        tenant: { select: { id: true, name: true } },
+        file: true,
+      },
+      orderBy: { uploadedAt: 'desc' },
+    });
+
+    res.json(videos);
+  } catch (error) {
+    console.error('getAdminVideos error:', error);
+    res.status(500).json({ message: 'Videolar alınamadı.' });
   }
 };

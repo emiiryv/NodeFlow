@@ -44,6 +44,7 @@ export const handleUpload = async (req, res) => {
         uploadedAt: azureUploadResult.uploadedAt,
         userId: req.user?.userId || null,
         tenantId: req.user?.tenantId || null,
+        mimetype: file.mimetype,
       },
     });
 
@@ -59,6 +60,13 @@ export const handleUpload = async (req, res) => {
           duration: metadata?.duration || null,
           format: metadata?.format || null,
           resolution: metadata?.resolution || null,
+          filename: file.originalname,
+          url: azureUploadResult.url,
+          size: file.size,
+          uploadedAt: azureUploadResult.uploadedAt,
+          user: req.user?.userId ? { connect: { id: req.user.userId } } : undefined,
+          tenant: req.user?.tenantId ? { connect: { id: req.user.tenantId } } : undefined,
+          mimetype: file.mimetype,
         },
       });
     }

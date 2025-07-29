@@ -9,7 +9,9 @@ import {
   deleteFileById,
   updateUserById,
   deleteUserById,
-  getAllTenants
+  getAllTenants,
+  deleteVideoById,
+  getAdminVideos
 } from '../controllers/adminController.js';
 
 const router = express.Router();
@@ -34,5 +36,13 @@ router.get('/files/tenant', authenticate, isTenantAdmin, getTenantAdminFiles);
 // File Deletion
 router.delete('/files/:id', authenticate, isAdmin, deleteFileById);
 router.delete('/files/tenant/:id', authenticate, isTenantAdmin, deleteFileById);
+
+// Video Listing
+router.get('/videos', authenticate, isAdmin, getAdminVideos);
+router.get('/videos/tenant', authenticate, isTenantAdmin, getAdminVideos);
+
+// Video Deletion
+router.delete('/videos/:id', authenticate, isAdmin, deleteVideoById);
+router.delete('/videos/tenant/:id', authenticate, isTenantAdmin, deleteVideoById);
 
 export default router;

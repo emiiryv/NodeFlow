@@ -24,6 +24,7 @@ model File {
   filename   String
   url        String
   size       Int?
+  mimetype   String
   uploadedAt DateTime @default(now())
   uploaderIp String?
 

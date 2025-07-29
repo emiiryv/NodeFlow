@@ -8,10 +8,11 @@ const getVideos = async (req, res) => {
 
   try {
     const videos = await prisma.video.findMany({
-      where:
-        role === 'admin'
-          ? {}
-          : { tenantId },
+      where: role === 'admin' ? {} : { tenantId },
+      include: {
+        user: true,
+        tenant: true,
+      },
       orderBy: { uploadedAt: 'desc' }
     });
 
@@ -64,6 +65,7 @@ import { compressVideoBuffer } from '../utils/videoProcessor.js';
 const uploadVideo = async (req, res) => {
   const { title, description } = req.body;
   const file = req.file;
+  const userId = req.user?.userId || req.user?.id;
 
   if (!file) return res.status(400).json({ message: 'No video file uploaded' });
 
@@ -96,6 +98,7 @@ const uploadVideo = async (req, res) => {
         uploadedAt: azureUploadResult.uploadedAt,
         userId: req.user?.id || null,
         tenantId: req.user?.tenantId || null,
+        mimetype: file?.mimetype || 'application/octet-stream',
       },
     });
 
@@ -113,7 +116,7 @@ const uploadVideo = async (req, res) => {
         filename: newFile.filename,
         url: newFile.url,
         size: newFile.size,
-        uploadedBy: req.user?.userId || null,
+        uploadedBy: userId,
         tenantId: req.user?.tenantId || null,
       },
     });
@@ -133,9 +136,32 @@ const uploadVideo = async (req, res) => {
 // DELETE /videos/:id
 const deleteVideo = async (req, res) => {
   try {
-    await prisma.video.delete({
-      where: { id: Number(req.params.id) }
+    const userId = req.user?.userId || req.user?.id;
+    const role = req.user?.role;
+
+    // Find the video including the associated file
+    const video = await prisma.video.findUnique({
+      where: { id: Number(req.params.id) },
+      include: { file: true },
     });
+
+    if (!video) return res.status(404).json({ message: 'Video not found' });
+
+    // Authorization check
+    if (role !== 'admin' && video.uploadedBy !== userId) {
+      return res.status(403).json({ message: 'Bu videoyu silme yetkiniz yok.' });
+    }
+
+    // First delete the video entry (to remove foreign key reference)
+    await prisma.video.delete({
+      where: { id: Number(req.params.id) },
+    });
+
+    // Then delete the associated file
+    await prisma.file.delete({
+      where: { id: video.fileId },
+    });
+
     res.status(204).send();
   } catch (error) {
     console.error('Video delete error:', error);
