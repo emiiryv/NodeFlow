@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axiosInstance from '../api/axiosInstance';
+import { useNavigate } from 'react-router-dom';
 
 interface FileItem {
   id: string;
@@ -12,6 +13,7 @@ const TenantFilesPage: React.FC = () => {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchTenantFiles = async () => {
@@ -39,7 +41,9 @@ const TenantFilesPage: React.FC = () => {
         <ul>
           {Array.isArray(files) && files.map((file) => (
             <li key={file.id}>
-              <strong>{file.filename}</strong> – {(file.size / 1024).toFixed(2)} KB –{' '}
+              <button onClick={() => navigate(`/files/${file.id}`)} className="text-blue-600 underline text-left font-medium">
+                {file.filename}
+              </button> – {(file.size / 1024).toFixed(2)} KB –{' '}
               {new Date(file.uploadedAt).toLocaleString()}
             </li>
           ))}

@@ -61,7 +61,12 @@ export const getFileById = async (req, res) => {
   try {
     const file = await prisma.file.findUnique({
       where: { id: Number(id) },
-      include: { accessLogs: true },
+      include: {
+        accessLogs: true,
+        user: { select: { id: true, name: true, email: true } },
+        tenant: { select: { id: true, name: true } },
+        videos: true
+      },
     });
 
     if (!file) return res.status(404).json({ message: 'File not found.' });

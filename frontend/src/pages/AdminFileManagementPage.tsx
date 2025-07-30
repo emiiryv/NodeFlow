@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from '../api/axiosInstance';
 
 interface FileItem {
@@ -28,6 +29,8 @@ const AdminFileManagementPage: React.FC = () => {
 
   const [tenants, setTenants] = useState<{ id: number; name: string }[]>([]);
   const [selectedTenantId, setSelectedTenantId] = useState<number | null>(null);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUserRoleAndTenants = async () => {
@@ -148,9 +151,9 @@ const AdminFileManagementPage: React.FC = () => {
               {files.map((file) => (
                 <tr key={file.id}>
                   <td className="py-2 px-4 border-b">
-                    <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                    <button onClick={() => navigate(`/files/${file.id}`)} className="text-blue-600 underline text-left">
                       {file.filename}
-                    </a>
+                    </button>
                   </td>
                   <td className="py-2 px-4 border-b">{(file.size / 1024).toFixed(2)} KB</td>
                   <td className="py-2 px-4 border-b">{new Date(file.uploadedAt).toLocaleString()}</td>
@@ -209,9 +212,9 @@ const AdminFileManagementPage: React.FC = () => {
               {videos.map((video) => (
                 <tr key={video.id}>
                   <td className="py-2 px-4 border-b">
-                    <a href={video.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                      {video.title}
-                    </a>
+                    <button onClick={() => navigate(`/files/${video.fileId}`)} className="text-blue-600 underline text-left">
+                      {video.filename}
+                    </button>
                   </td>
                   <td className="py-2 px-4 border-b">{video.filename}</td>
                   <td className="py-2 px-4 border-b">{video.duration?.toFixed(2)} sn</td>

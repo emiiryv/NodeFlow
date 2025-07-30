@@ -3,6 +3,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import UploadPage from './pages/UploadPage';
 import FileListPage from './pages/FileListPage';
+import FileDetailPage from './pages/FileDetailPage';
 import LoginRegisterPage from './pages/LoginRegisterPage';
 import UserStatsPage from './pages/UserStatsPage';
 import UserProfilePage from './pages/UserProfilePage';
@@ -19,6 +20,7 @@ function App() {
         <Routes>
           <Route path="/" element={<UploadPage />} />
           <Route path="/files" element={<FileListPage />} />
+          <Route path="/files/:id" element={<FileDetailPage />} />
           <Route path="/login" element={<LoginRegisterPage />} />
           <Route path="/register" element={<LoginRegisterPage />} />
           <Route path="/stats" element={<UserStatsPage />} />

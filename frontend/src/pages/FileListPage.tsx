@@ -13,6 +13,7 @@ interface FileItem {
 
 interface VideoItem {
   id: number;
+  fileId: number;
   title: string;
   description?: string;
   url: string;
@@ -116,9 +117,9 @@ const FileListPage = () => {
           <li key={file.id} className="mb-4 border-b pb-3">
             <div className="flex justify-between items-start">
               <div className="flex flex-col">
-                <a href={file.url} target="_blank" rel="noreferrer" className="text-blue-600 underline font-medium">
+                <button onClick={() => navigate(`/files/${file.id}`)} className="text-blue-600 underline font-medium text-left">
                   {file.filename}
-                </a>
+                </button>
                 <div className="mt-1 flex gap-2">
                   <button
                     onClick={() => window.open(file.url, '_blank')}
@@ -159,9 +160,9 @@ const FileListPage = () => {
         {videos.map((video) => (
           <li key={video.id} className="mb-4 border-b pb-3">
             <div className="flex flex-col">
-              <a href={video.url} target="_blank" rel="noreferrer" className="text-blue-600 font-medium underline">
-                {video.title}
-              </a>
+              <button onClick={() => navigate(`/files/${video.fileId}`)} className="text-blue-600 font-medium underline text-left">
+                {video.filename}
+              </button>
               <p className="text-sm text-gray-600 mt-1">
                 Süre: {video.duration?.toFixed(2)} sn | Çözünürlük: {video.resolution} | Format: {video.format}
               </p>
