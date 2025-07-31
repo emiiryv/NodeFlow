@@ -59,8 +59,9 @@ const getMyVideos = async (req, res) => {
 };
 
 import { uploadToAzure } from '../services/azureService.js';
-import { extractMetadata } from '../config/videoMetaParser.js';
+import { extractMetadata } from '../services/metaService.js';
 import { compressVideoBuffer } from '../utils/videoProcessor.js';
+import { optimizeVideo } from '../services/metaService.js';
 
 const uploadVideo = async (req, res) => {
   const { title, description } = req.body;
@@ -70,6 +71,12 @@ const uploadVideo = async (req, res) => {
   if (!file) return res.status(400).json({ message: 'No video file uploaded' });
 
   try {
+    // Optional: Optimize video before compression and upload
+    const optimizedBuffer = await optimizeVideo(file.buffer, file.originalname);
+    if (optimizedBuffer) {
+      file.buffer = optimizedBuffer;
+      file.size = optimizedBuffer.length;
+    }
     // Compress if too large
     const MAX_SIZE_MB = 200;
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
@@ -93,7 +100,7 @@ const uploadVideo = async (req, res) => {
       data: {
         filename: azureUploadResult.filename,
         url: azureUploadResult.url,
-        size: azureUploadResult.size || null,
+        size: azureUploadResult.size,
         uploaderIp: req.ip,
         uploadedAt: azureUploadResult.uploadedAt,
         userId: req.user?.id || null,
@@ -115,7 +122,7 @@ const uploadVideo = async (req, res) => {
         resolution: metadata?.resolution || null,
         filename: newFile.filename,
         url: newFile.url,
-        size: newFile.size,
+        size: azureUploadResult.size,
         uploadedBy: userId,
         tenantId: req.user?.tenantId || null,
       },

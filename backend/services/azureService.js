@@ -15,7 +15,8 @@ async function uploadToAzure(file, uploaderIp, tenantId) {
     throw new Error('Invalid file object provided to uploadToAzure.');
   }
 
-  const blobName = `${tenantId}/${Date.now()}-${originalname}`;
+  const safeOriginalName = originalname || 'unnamed-file';
+  const blobName = `${tenantId}/${Date.now()}-${safeOriginalName}`;
   const blockBlobClient = containerClient.getBlockBlobClient(blobName);
 
   await blockBlobClient.uploadData(buffer, {
@@ -29,9 +30,9 @@ async function uploadToAzure(file, uploaderIp, tenantId) {
   }
 
   return {
-    filename: originalname,
+    filename: safeOriginalName,
     url,
-    size,
+    size: typeof size === 'number' ? size : buffer.length,
     uploaderIp,
     uploadedAt: new Date()
   };

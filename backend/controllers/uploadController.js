@@ -1,5 +1,5 @@
 import prisma from '../models/db.js';
-import { extractMetadata } from '../config/videoMetaParser.js';
+import { extractMetadata } from '../services/metaService.js';
 import { uploadToAzure } from '../services/azureService.js';
 import { compressBuffer } from '../utils/compression.js';
 import { compressVideoBuffer } from '../utils/videoProcessor.js';
@@ -31,7 +31,7 @@ export const handleUpload = async (req, res) => {
       originalname: file.originalname,
       buffer: file.buffer,
       mimetype: file.mimetype,
-      size: file.size,
+      size: file.buffer.length,
     }, req.ip);
 
     // Dosyayı veritabanına kaydet
@@ -39,7 +39,7 @@ export const handleUpload = async (req, res) => {
       data: {
         filename: azureUploadResult.filename,
         url: azureUploadResult.url,
-        size: azureUploadResult.size || null,
+        size: file.buffer.length,
         uploaderIp: req.ip,
         uploadedAt: azureUploadResult.uploadedAt,
         userId: req.user?.userId || null,
@@ -62,7 +62,7 @@ export const handleUpload = async (req, res) => {
           resolution: metadata?.resolution || null,
           filename: file.originalname,
           url: azureUploadResult.url,
-          size: file.size,
+          size: file.buffer.length,
           uploadedAt: azureUploadResult.uploadedAt,
           user: req.user?.userId ? { connect: { id: req.user.userId } } : undefined,
           tenant: req.user?.tenantId ? { connect: { id: req.user.tenantId } } : undefined,
