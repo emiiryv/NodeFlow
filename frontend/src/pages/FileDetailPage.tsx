@@ -19,6 +19,7 @@ interface FileDetail {
     resolution: string;
     fileId: number;
   };
+  thumbnailUrl?: string;
 }
 
 const FileDetailPage: React.FC = () => {
@@ -81,6 +82,25 @@ const FileDetailPage: React.FC = () => {
             <li><strong>Çözünürlük:</strong> {file.video.resolution}</li>
           </ul>
         </>
+      )}
+
+      {file.mimetype.startsWith("video/") && (
+        <div className="mt-4">
+          <h2 className="text-lg font-semibold mb-2">🎬 Video Önizleme</h2>
+          <div className="relative max-w-full w-full sm:w-[480px] md:w-[640px] aspect-video rounded shadow overflow-hidden">
+            <video controls className="w-full h-full object-contain">
+              <source src={file.url} type={file.mimetype} />
+              Tarayıcınız video etiketini desteklemiyor.
+            </video>
+          </div>
+        </div>
+      )}
+
+      {'thumbnailUrl' in file && file.thumbnailUrl && (
+        <div className="mt-4">
+          <h2 className="text-lg font-semibold mb-2">🖼️ Thumbnail</h2>
+          <img src={file.thumbnailUrl} alt="Video Thumbnail" className="rounded w-64 border" />
+        </div>
       )}
     </div>
   );
