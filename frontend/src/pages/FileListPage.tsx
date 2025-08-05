@@ -46,7 +46,16 @@ const FileListPage = () => {
   const fetchFiles = async () => {
     try {
       const res = await axios.get('/files');
-      setFiles(res.data);
+      const allFiles = res.data;
+
+      // Video dosyalarının ID'lerini filtrele
+      const videoRes = await axios.get('/videos/my');
+      const videoFileIds = videoRes.data.map((v: any) => v.fileId);
+
+      const filteredFiles = allFiles.filter((f: any) => !videoFileIds.includes(f.id));
+
+      setFiles(filteredFiles);
+      setVideos(videoRes.data);
     } catch (err) {
       setError('Dosyalar alınamadı.');
     } finally {
@@ -54,14 +63,7 @@ const FileListPage = () => {
     }
   };
 
-  const fetchVideos = async () => {
-    try {
-      const response = await axios.get('/videos/my');
-      setVideos(response.data);
-    } catch (err) {
-      console.error('Videolar alınamadı.');
-    }
-  };
+  // fetchVideos fonksiyonu artık kullanılmıyor
 
   const deleteFile = async (id: number) => {
     if (!window.confirm('Bu dosyayı silmek istediğinize emin misiniz?')) return;
@@ -104,7 +106,6 @@ const FileListPage = () => {
 
   useEffect(() => {
     fetchFiles();
-    fetchVideos();
   }, []);
 
   return (
@@ -112,71 +113,82 @@ const FileListPage = () => {
       <h1 className="text-2xl font-bold mb-4">Yüklenen Dosyalar</h1>
       {loading && <p>Yükleniyor...</p>}
       {error && <p className="text-red-600">{error}</p>}
-      <ul>
-        {files.map((file) => (
-          <li key={file.id} className="mb-4 border-b pb-3">
-            <div className="flex justify-between items-start">
-              <div className="flex flex-col">
-                <button onClick={() => navigate(`/files/${file.id}`)} className="text-blue-600 underline font-medium text-left">
+
+      <h2 className="text-xl font-semibold mt-6 mb-2">Dosyalar</h2>
+      <table className="w-full table-auto border border-gray-300 mb-8 text-sm">
+        <thead>
+          <tr className="bg-gray-200">
+            <th className="px-4 py-2 text-left">Dosya Adı</th>
+            <th className="px-4 py-2">Boyut</th>
+            <th className="px-4 py-2">Tür</th>
+            <th className="px-4 py-2">Yüklenme Tarihi</th>
+            <th className="px-4 py-2">İşlemler</th>
+          </tr>
+        </thead>
+        <tbody>
+          {files.map((file) => (
+            <tr key={file.id} className="border-t">
+              <td className="px-4 py-2">
+                <button onClick={() => navigate(`/files/${file.id}`)} className="text-blue-600 underline">
                   {file.filename}
                 </button>
-                <div className="mt-1 flex gap-2">
-                  <button
-                    onClick={() => window.open(file.url, '_blank')}
-                    className="text-sm text-green-600 underline hover:text-green-800"
-                  >
-                    İndir
-                  </button>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(file.url);
-                      alert('Bağlantı panoya kopyalandı!');
-                    }}
-                    className="text-sm text-blue-600 underline hover:text-blue-800"
-                  >
-                    Bağlantıyı Kopyala
-                  </button>
-                </div>
-                <button onClick={() => handleEdit(file)} className="text-sm text-gray-500 underline">Düzenle</button>
-                <div className="text-sm text-gray-600">
-                  Tür: {file.mimetype} | Boyut: {(file.size / 1024).toFixed(2)} KB
-                </div>
-                <div className="text-sm text-gray-600">
-                  Yükleme Tarihi: {new Date(file.uploadedAt).toLocaleString()}
-                </div>
-              </div>
-              <button
-                onClick={() => deleteFile(file.id)}
-                className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 h-fit"
-              >
-                Sil
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
-      <h1 className="text-2xl font-bold mt-8 mb-4">Yüklenen Videolar</h1>
-      <ul>
-        {videos.map((video) => (
-          <li key={video.id} className="mb-4 border-b pb-3">
-            <div className="flex flex-col">
-              <button onClick={() => navigate(`/files/${video.fileId}`)} className="text-blue-600 font-medium underline text-left">
-                {video.filename}
-              </button>
-              <p className="text-sm text-gray-600 mt-1">
-                Süre: {video.duration?.toFixed(2)} sn | Çözünürlük: {video.resolution} | Format: {video.format}
-              </p>
-              <p className="text-sm text-gray-600">
-                Dosya: {video.filename} | {(video.size / 1024).toFixed(2)} KB
-              </p>
-              <p className="text-sm text-gray-600">
-                Yükleme Tarihi: {new Date(video.uploadedAt).toLocaleString()}
-              </p>
-              <div className="mt-1 flex gap-2">
+              </td>
+              <td className="px-4 py-2 text-center">{(file.size / 1024).toFixed(2)} KB</td>
+              <td className="px-4 py-2 text-center">{file.mimetype}</td>
+              <td className="px-4 py-2 text-center">{new Date(file.uploadedAt).toLocaleString()}</td>
+              <td className="px-4 py-2 flex flex-col gap-1 items-center">
+                <button onClick={() => window.open(file.url, '_blank')} className="text-green-600 underline text-xs">
+                  İndir
+                </button>
                 <button
-                  onClick={() => window.open(video.url, '_blank')}
-                  className="text-sm text-green-600 underline hover:text-green-800"
+                  onClick={() => {
+                    navigator.clipboard.writeText(file.url);
+                    alert('Bağlantı panoya kopyalandı!');
+                  }}
+                  className="text-blue-600 underline text-xs"
                 >
+                  Kopyala
+                </button>
+                <button onClick={() => handleEdit(file)} className="text-yellow-600 underline text-xs">
+                  Düzenle
+                </button>
+                <button onClick={() => deleteFile(file.id)} className="text-red-600 underline text-xs">
+                  Sil
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <h2 className="text-xl font-semibold mt-6 mb-2">Videolar</h2>
+      <table className="w-full table-auto border border-gray-300 text-sm">
+        <thead>
+          <tr className="bg-gray-200">
+            <th className="px-4 py-2 text-left">Dosya Adı</th>
+            <th className="px-4 py-2">Süre</th>
+            <th className="px-4 py-2">Çözünürlük</th>
+            <th className="px-4 py-2">Format</th>
+            <th className="px-4 py-2">Boyut</th>
+            <th className="px-4 py-2">Yüklenme Tarihi</th>
+            <th className="px-4 py-2">İşlemler</th>
+          </tr>
+        </thead>
+        <tbody>
+          {videos.map((video) => (
+            <tr key={video.id} className="border-t">
+              <td className="px-4 py-2">
+                <button onClick={() => navigate(`/files/${video.fileId}`)} className="text-blue-600 underline">
+                  {video.filename}
+                </button>
+              </td>
+              <td className="px-4 py-2 text-center">{video.duration?.toFixed(2)} sn</td>
+              <td className="px-4 py-2 text-center">{video.resolution}</td>
+              <td className="px-4 py-2 text-center">{video.format}</td>
+              <td className="px-4 py-2 text-center">{(video.size / 1024).toFixed(2)} KB</td>
+              <td className="px-4 py-2 text-center">{new Date(video.uploadedAt).toLocaleString()}</td>
+              <td className="px-4 py-2 flex flex-col gap-1 items-center">
+                <button onClick={() => window.open(video.url, '_blank')} className="text-green-600 underline text-xs">
                   İndir
                 </button>
                 <button
@@ -184,21 +196,19 @@ const FileListPage = () => {
                     navigator.clipboard.writeText(video.url);
                     alert('Bağlantı panoya kopyalandı!');
                   }}
-                  className="text-sm text-blue-600 underline hover:text-blue-800"
+                  className="text-blue-600 underline text-xs"
                 >
-                  Bağlantıyı Kopyala
+                  Kopyala
                 </button>
-                <button
-                  onClick={() => deleteVideo(video.id)}
-                  className="text-sm text-red-600 underline hover:text-red-800"
-                >
+                <button onClick={() => deleteVideo(video.id)} className="text-red-600 underline text-xs">
                   Sil
                 </button>
-              </div>
-            </div>
-          </li>
-        ))}
-      </ul>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded shadow-md w-80">

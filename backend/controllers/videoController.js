@@ -93,7 +93,7 @@ const uploadVideo = async (req, res) => {
       buffer: file.buffer,
       mimetype: file.mimetype,
       size: file.size,
-    }, req.ip);
+    }, req.ip, req.user?.tenantId || null);
 
     // Save file record
     const newFile = await prisma.file.create({
@@ -103,7 +103,7 @@ const uploadVideo = async (req, res) => {
         size: azureUploadResult.size,
         uploaderIp: req.ip,
         uploadedAt: azureUploadResult.uploadedAt,
-        userId: req.user?.id || null,
+        userId: userId || null,
         tenantId: req.user?.tenantId || null,
         mimetype: file?.mimetype || 'application/octet-stream',
       },

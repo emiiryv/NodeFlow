@@ -54,6 +54,11 @@ const UploadPage = () => {
         const formData = new FormData();
         formData.append('file', file);
 
+        const token = localStorage.getItem('token');
+        const payload = token ? JSON.parse(atob(token.split('.')[1])) : null;
+        const tenantId = payload?.tenantId;
+        formData.append('tenantId', tenantId || '');
+
         const res = await axios.post('/files/upload', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
@@ -76,7 +81,7 @@ const UploadPage = () => {
   };
 
   return (
-    <div className="p-4">
+    <div className="p-4 max-w-3xl mx-auto">
       {!isAuthenticated ? (
         <div className="mb-4 flex gap-4">
           <button onClick={() => window.location.href = '/login'} className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300">Giriş Yap</button>
@@ -86,8 +91,8 @@ const UploadPage = () => {
 
       <h1 className="text-xl font-bold mb-2">NodeFlow Dosya Yükleme</h1>
       {isAuthenticated ? (
-        <>
-          <input type="file" onChange={handleFileChange} className="mb-2" />
+        <div className="bg-white shadow rounded p-4 space-y-4">
+          <input type="file" onChange={handleFileChange} className="mb-2 w-full border border-gray-300 px-3 py-2 rounded" />
           {file && file.type.startsWith('video/') && (
             <div className="mb-2">
               <input
@@ -112,16 +117,16 @@ const UploadPage = () => {
           >
             {isUploading ? 'Yükleniyor...' : 'Yükle'}
           </button>
-          {error && <p className="text-red-600 mt-2">{error}</p>}
+          {error && <p className="text-red-600 mt-2 text-sm">{error}</p>}
           {uploadedUrl && (
             <div className="mt-4">
               <p>Yüklenen dosya:</p>
-              <a href={uploadedUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+              <a href={uploadedUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline mt-2 text-sm">
                 {uploadedUrl}
               </a>
             </div>
           )}
-        </>
+        </div>
       ) : (
         <p className="text-red-500 mt-2">Yükleme işlemi için lütfen giriş yapın.</p>
       )}

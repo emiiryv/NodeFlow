@@ -39,34 +39,39 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <nav className="bg-gray-800 text-white p-4 flex justify-between items-center">
-      <div className="flex gap-4">
-        <Link to="/" className="hover:text-gray-300">Ana Sayfa</Link>
-      </div>
-      <div>
+    <nav className="bg-white shadow-md border-b">
+      <div className="w-full max-w-7xl mx-auto px-4 py-2 flex flex-wrap justify-between items-center">
         {isLoggedIn ? (
-          <div className="flex gap-4 items-center">
-            <Link to="/files" className="hover:text-gray-300">Dosyalar</Link>
-            {userRole !== 'admin' && (
-              <Link to="/tenant-files" className="hover:text-gray-300">Tenant Dosyaları</Link>
-            )}
-            <Link to="/stats" className="hover:text-gray-300">İstatistikler</Link>
-            {userRole === 'admin' || userRole === 'tenantadmin' ? (
-              <>
-                <Link to="/admin" className="hover:text-gray-300">Admin Paneli</Link>
-                <Link to="/admin/user-management" className="hover:text-gray-300">Kullanıcı Yönetimi</Link>
-                <Link to="/admin/file-management" className="hover:text-gray-300">Dosya Yönetimi</Link>
-              </>
-            ) : null}
-            <Link to="/profile" className="hover:text-gray-300">Profil</Link>
-            <button onClick={handleLogout} className="bg-red-500 px-3 py-1 rounded hover:bg-red-600">
-              Çıkış Yap
-            </button>
-          </div>
+          <>
+            <div className="flex flex-wrap gap-4 items-center">
+              <Link to="/" className="text-gray-700 hover:text-blue-600 font-medium">Ana Sayfa</Link>
+              <Link to="/files" className="text-gray-700 hover:text-blue-600 font-medium">Dosyalar</Link>
+              {userRole !== 'admin' && (
+                <Link to="/tenant-files" className="text-gray-700 hover:text-blue-600 font-medium">Tenant Dosyaları</Link>
+              )}
+              <Link to="/stats" className="text-gray-700 hover:text-blue-600 font-medium">İstatistikler</Link>
+              {(userRole === 'admin' || userRole === 'tenantadmin') && (
+                <>
+                  <Link to="/admin" className="text-gray-700 hover:text-blue-600 font-medium">Admin Paneli</Link>
+                  <Link to="/admin/user-management" className="text-gray-700 hover:text-blue-600 font-medium">Kullanıcı Yönetimi</Link>
+                  <Link to="/admin/file-management" className="text-gray-700 hover:text-blue-600 font-medium">Dosya Yönetimi</Link>
+                </>
+              )}
+              <Link to="/profile" className="text-gray-700 hover:text-blue-600 font-medium">Profil</Link>
+            </div>
+            <div>
+              <button
+                onClick={handleLogout}
+                className="bg-red-500 hover:bg-red-600 text-white font-medium px-4 py-1 rounded"
+              >
+                Çıkış Yap
+              </button>
+            </div>
+          </>
         ) : (
-          <div className="flex gap-2">
-            <Link to="/login" className="bg-blue-500 px-3 py-1 rounded hover:bg-blue-600">Giriş Yap</Link>
-            <Link to="/register" className="bg-green-500 px-3 py-1 rounded hover:bg-green-600">Kayıt Ol</Link>
+          <div className="flex space-x-4">
+            <Link to="/login" className="px-4 py-2 text-sm font-medium rounded shadow transition-all duration-200 bg-white text-purple-700 hover:bg-gray-100">Giriş Yap</Link>
+            <Link to="/register" className="px-4 py-2 text-sm font-medium rounded shadow transition-all duration-200 bg-yellow-400 text-white hover:bg-yellow-500">Kayıt Ol</Link>
           </div>
         )}
       </div>

@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import prisma from '../models/db.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_key';
+const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_key';
 
 export const register = async (req, res) => {
   try {

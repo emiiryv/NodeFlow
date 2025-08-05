@@ -84,18 +84,6 @@ const FileDetailPage: React.FC = () => {
         </>
       )}
 
-      {file.mimetype.startsWith("video/") && (
-        <div className="mt-4">
-          <h2 className="text-lg font-semibold mb-2">🎬 Video Önizleme</h2>
-          <div className="relative max-w-full w-full sm:w-[480px] md:w-[640px] aspect-video rounded shadow overflow-hidden">
-            <video controls className="w-full h-full object-contain">
-              <source src={file.url} type={file.mimetype} />
-              Tarayıcınız video etiketini desteklemiyor.
-            </video>
-          </div>
-        </div>
-      )}
-
       {'thumbnailUrl' in file && file.thumbnailUrl && (
         <div className="mt-4">
           <h2 className="text-lg font-semibold mb-2">🖼️ Thumbnail</h2>

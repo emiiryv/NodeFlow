@@ -10,6 +10,10 @@ const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_C
 const containerClient = blobServiceClient.getContainerClient(CONTAINER_NAME);
 
 async function uploadToAzure(file, uploaderIp, tenantId) {
+  if (!tenantId) {
+    throw new Error('Missing tenantId for upload.');
+  }
+
   const { originalname, buffer, mimetype, size } = file;
   if (!originalname || !buffer || !mimetype || !Buffer.isBuffer(buffer) || typeof size !== 'number') {
     throw new Error('Invalid file object provided to uploadToAzure.');
@@ -17,6 +21,7 @@ async function uploadToAzure(file, uploaderIp, tenantId) {
 
   const safeOriginalName = originalname || 'unnamed-file';
   const blobName = `${tenantId}/${Date.now()}-${safeOriginalName}`;
+  console.log("[uploadToAzure] Blob adı:", blobName);
   const blockBlobClient = containerClient.getBlockBlobClient(blobName);
 
   await blockBlobClient.uploadData(buffer, {

@@ -32,7 +32,7 @@ export const handleUpload = async (req, res) => {
       buffer: file.buffer,
       mimetype: file.mimetype,
       size: file.buffer.length,
-    }, req.ip);
+    }, req.ip, req.user?.tenantId || null);
 
     // Dosyayı veritabanına kaydet
     const newFile = await prisma.file.create({
