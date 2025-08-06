@@ -1,18 +1,28 @@
-import prisma from '../models/db.js';
+import { Request, Response } from 'express';
+import prisma from '../models/db';
 
 // Admin veya Tenant Admin: Tüm kullanıcıları getir
-export const getAllUsers = async (req, res) => {
-  try {
-    const role = req.user?.role;
-    const tenantId = req.user?.tenantId;
-    const tenantIdParam = req.query.tenantId;
+export const getAllUsers = async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+  const { userId, tenantId, role } = req.user as { userId: number; tenantId: number; role: string };
+  const tenantIdParam = req.query.tenantId;
 
-    const users = await prisma.user.findMany({
-      where: role === 'tenantadmin'
-        ? { tenantId }
+  if (!role || (role === 'tenantadmin' && tenantId === undefined)) {
+    return res.status(400).json({ message: 'Geçersiz kullanıcı oturumu.' });
+  }
+
+  try {
+    const tenantFilter =
+      role === 'tenantadmin'
+        ? { tenantId: tenantId }
         : tenantIdParam
         ? { tenantId: Number(tenantIdParam) }
-        : {},
+        : {};
+
+    const users = await prisma.user.findMany({
+      where: tenantFilter,
       select: {
         id: true,
         name: true,
@@ -32,11 +42,24 @@ export const getAllUsers = async (req, res) => {
 };
 
 // Admin veya Tenant Admin: Dosyaları getir
-export const getAdminFiles = async (req, res) => {
+export const getAdminFiles = async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+  const { userId, tenantId, role } = req.user as { userId: number; tenantId: number; role: string };
+  const tenantIdParam = req.query.tenantId;
+
+  if (!role || (role === 'tenantadmin' && tenantId === undefined)) {
+    return res.status(400).json({ message: 'Geçersiz kullanıcı oturumu.' });
+  }
+
   try {
-    const role = req.user?.role;
-    const tenantId = req.user?.tenantId;
-    const tenantIdParam = req.query.tenantId;
+    const tenantFilter =
+      role === 'tenantadmin'
+        ? { tenantId: tenantId }
+        : tenantIdParam
+        ? { tenantId: Number(tenantIdParam) }
+        : {};
 
     const files = await prisma.file.findMany({
       where: {
@@ -45,11 +68,7 @@ export const getAdminFiles = async (req, res) => {
             startsWith: 'video/',
           },
         },
-        ...(role === 'tenantadmin'
-          ? { tenantId }
-          : tenantIdParam
-          ? { tenantId: Number(tenantIdParam) }
-          : {}),
+        ...tenantFilter,
       },
       include: {
         user: { select: { id: true, name: true, email: true } },
@@ -66,11 +85,18 @@ export const getAdminFiles = async (req, res) => {
 };
 
 // Admin: Kullanıcı sil
-export const deleteUserById = async (req, res) => {
+export const deleteUserById = async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+  const { userId, tenantId, role } = req.user as { userId: number; tenantId: number; role: string };
+
   const { id } = req.params;
+  const numericId = Number(id);
+  if (isNaN(numericId)) return res.status(400).json({ message: 'Geçersiz ID.' });
 
   try {
-    await prisma.user.delete({ where: { id: Number(id) } });
+    await prisma.user.delete({ where: { id: numericId } });
     res.json({ message: 'Kullanıcı silindi.' });
   } catch (error) {
     console.error('deleteUserById error:', error);
@@ -79,33 +105,42 @@ export const deleteUserById = async (req, res) => {
 };
 
 // Admin veya TenantAdmin: Kullanıcı bilgilerini güncelle
-export const updateUserById = async (req, res) => {
+export const updateUserById = async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+  const { userId, tenantId, role: userRole } = req.user as { userId: number; tenantId: number; role: string };
+
   const { id } = req.params;
+  const numericId = Number(id);
+  if (isNaN(numericId)) return res.status(400).json({ message: 'Geçersiz ID.' });
+
   const { name, email, username } = req.body;
 
-  const userRole = req.user?.role;
-  const tenantId = req.user?.tenantId;
+  if (!userRole || (userRole === 'tenantadmin' && tenantId === undefined)) {
+    return res.status(400).json({ message: 'Geçersiz kullanıcı oturumu.' });
+  }
 
   if (userRole !== 'admin' && userRole !== 'tenantadmin') {
     return res.status(403).json({ message: 'Yetkisiz erişim.' });
   }
 
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: Number(id) },
+    const userRecord = await prisma.user.findUnique({
+      where: { id: numericId },
     });
 
-    if (!user) {
+    if (!userRecord) {
       return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
     }
 
     // Tenant admin sadece kendi tenant kullanıcılarını güncelleyebilir
-    if (userRole === 'tenantadmin' && user.tenantId !== tenantId) {
+    if (userRole === 'tenantadmin' && userRecord.tenantId !== tenantId) {
       return res.status(403).json({ message: 'Bu kullanıcıya erişiminiz yok.' });
     }
 
     const updatedUser = await prisma.user.update({
-      where: { id: Number(id) },
+      where: { id: numericId },
       data: { name, email, username },
     });
 
@@ -117,11 +152,19 @@ export const updateUserById = async (req, res) => {
 };
 
 // Admin: Dosya sil
-export const deleteFileById = async (req, res) => {
-  const { id } = req.params;
+export const deleteFileById = async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+  const { userId, tenantId, role: userRole } = req.user as { userId: number; tenantId: number; role: string };
 
-  const userRole = req.user?.role;
-  const tenantId = req.user?.tenantId;
+  const { id } = req.params;
+  const numericId = Number(id);
+  if (isNaN(numericId)) return res.status(400).json({ message: 'Geçersiz ID.' });
+
+  if (!userRole || (userRole === 'tenantadmin' && tenantId === undefined)) {
+    return res.status(400).json({ message: 'Geçersiz kullanıcı oturumu.' });
+  }
 
   if (userRole !== 'admin' && userRole !== 'tenantadmin') {
     return res.status(403).json({ message: 'Yetkisiz erişim.' });
@@ -129,7 +172,7 @@ export const deleteFileById = async (req, res) => {
 
   try {
     const file = await prisma.file.findUnique({
-      where: { id: Number(id) },
+      where: { id: numericId },
     });
 
     if (!file) {
@@ -141,7 +184,7 @@ export const deleteFileById = async (req, res) => {
       return res.status(403).json({ message: 'Bu dosyaya erişiminiz yok.' });
     }
 
-    await prisma.file.delete({ where: { id: Number(id) } });
+    await prisma.file.delete({ where: { id: numericId } });
 
     res.json({ message: 'Dosya silindi.' });
   } catch (error) {
@@ -152,10 +195,17 @@ export const deleteFileById = async (req, res) => {
 
 export { getAdminFiles as getTenantAdminFiles };
 // Belirli bir tenant'ın kullanıcılarını getir
-export const getTenantUsers = async (req, res) => {
-  try {
-    const tenantId = req.user?.tenantId;
+export const getTenantUsers = async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+  const { userId, tenantId, role } = req.user as { userId: number; tenantId: number; role: string };
 
+  if (!role || (role === 'tenantadmin' && tenantId === undefined)) {
+    return res.status(400).json({ message: 'Geçersiz kullanıcı oturumu.' });
+  }
+
+  try {
     if (!tenantId) {
       return res.status(400).json({ message: 'Tenant ID bulunamadı.' });
     }
@@ -181,7 +231,7 @@ export const getTenantUsers = async (req, res) => {
 };
 
 // Admin: Tüm tenantları getir
-export const getAllTenants = async (req, res) => {
+export const getAllTenants = async (req: Request, res: Response) => {
   try {
     const tenants = await prisma.tenant.findMany({
       select: {
@@ -200,11 +250,19 @@ export const getAllTenants = async (req, res) => {
 };
 
 // Admin veya TenantAdmin: Video sil
-export const deleteVideoById = async (req, res) => {
-  const { id } = req.params;
+export const deleteVideoById = async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+  const { userId, tenantId, role: userRole } = req.user as { userId: number; tenantId: number; role: string };
 
-  const userRole = req.user?.role;
-  const tenantId = req.user?.tenantId;
+  const { id } = req.params;
+  const numericId = Number(id);
+  if (isNaN(numericId)) return res.status(400).json({ message: 'Geçersiz ID.' });
+
+  if (!userRole || (userRole === 'tenantadmin' && tenantId === undefined)) {
+    return res.status(400).json({ message: 'Geçersiz kullanıcı oturumu.' });
+  }
 
   if (userRole !== 'admin' && userRole !== 'tenantadmin') {
     return res.status(403).json({ message: 'Yetkisiz erişim.' });
@@ -212,7 +270,7 @@ export const deleteVideoById = async (req, res) => {
 
   try {
     const video = await prisma.video.findUnique({
-      where: { id: Number(id) },
+      where: { id: numericId },
       include: {
         file: true,
       },
@@ -226,7 +284,7 @@ export const deleteVideoById = async (req, res) => {
       return res.status(403).json({ message: 'Bu videoya erişiminiz yok.' });
     }
 
-    await prisma.video.delete({ where: { id: Number(id) } });
+    await prisma.video.delete({ where: { id: numericId } });
 
     // İlişkili dosyayı da sil
     if (video.file) {
@@ -240,19 +298,28 @@ export const deleteVideoById = async (req, res) => {
   }
 };
 // Admin veya TenantAdmin: Videoları getir
-export const getAdminVideos = async (req, res) => {
-  const role = req.user?.role;
-  const tenantId = req.user?.tenantId;
+export const getAdminVideos = async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+  const { userId, tenantId, role } = req.user as { userId: number; tenantId: number; role: string };
   const tenantIdParam = req.query.tenantId;
 
+  if (!role || (role === 'tenantadmin' && tenantId === undefined)) {
+    return res.status(400).json({ message: 'Geçersiz kullanıcı oturumu.' });
+  }
+
   try {
+    const tenantFilter =
+      role === 'tenantadmin'
+        ? { tenantId: tenantId }
+        : tenantIdParam
+        ? { tenantId: Number(tenantIdParam) }
+        : {};
+
     const videos = await prisma.video.findMany({
       where: {
-        ...(role === 'tenantadmin'
-          ? { tenantId }
-          : tenantIdParam
-          ? { tenantId: Number(tenantIdParam) }
-          : {}),
+        ...tenantFilter,
       },
       include: {
         user: { select: { id: true, name: true, email: true } },

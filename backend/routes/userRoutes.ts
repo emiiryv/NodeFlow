@@ -1,4 +1,4 @@
-import { isAdmin, isTenantAdmin } from '../middlewares/roleMiddleware.js';
+import { isAdmin, isTenantAdmin } from '../middlewares/roleMiddleware';
 import express from 'express';
 import {
   getUserStats,
@@ -6,8 +6,8 @@ import {
   updateUserProfile,
   deleteUser,
   changeUserPassword
-} from '../controllers/userController.js';
-import { authenticate } from '../middlewares/authMiddleware.js';
+} from '../controllers/userController';
+import { authenticate } from '../middlewares/authMiddleware';
 
 const router = express.Router();
 

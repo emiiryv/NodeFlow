@@ -8,7 +8,7 @@ const gzip = util.promisify(zlib.gzip);
  * @param {Buffer} buffer - The buffer to compress.
  * @returns {Promise<{buffer: Buffer, size: number}>} - The compressed buffer and its size.
  */
-export async function compressBuffer(buffer) {
+export async function compressBuffer(buffer: Buffer): Promise<{ buffer: Buffer; size: number }> {
   try {
     const compressed = await gzip(buffer);
     return {

@@ -1,7 +1,12 @@
-import prisma from '../models/db.js';
+import { Request, Response } from 'express';
+import prisma from '../models/db';
+import bcrypt from 'bcrypt';
 
 // Get profile of current user
-export const getUserProfile = async (req, res) => {
+export const getUserProfile = async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.userId, tenantId: req.user.tenantId },
@@ -27,7 +32,10 @@ export const getUserProfile = async (req, res) => {
 };
 
 // Admin: list all users
-export const getAllUsers = async (req, res) => {
+export const getAllUsers = async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
   try {
     const users = await prisma.user.findMany({
       where: { tenantId: req.user.tenantId },
@@ -49,7 +57,10 @@ export const getAllUsers = async (req, res) => {
 };
 
 // Delete current user
-export const deleteUser = async (req, res) => {
+export const deleteUser = async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
   try {
     const deleted = await prisma.user.delete({
       where: { id: req.user.userId },
@@ -63,7 +74,10 @@ export const deleteUser = async (req, res) => {
 };
 
 // Update current user
-export const updateUserProfile = async (req, res) => {
+export const updateUserProfile = async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
   try {
     const { name, email } = req.body;
 
@@ -80,9 +94,10 @@ export const updateUserProfile = async (req, res) => {
 };
 
 // Change user password
-import bcrypt from 'bcrypt';
-
-export const changeUserPassword = async (req, res) => {
+export const changeUserPassword = async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
   try {
     const userId = req.user.userId;
     const { currentPassword, newPassword } = req.body;
@@ -116,7 +131,10 @@ export const changeUserPassword = async (req, res) => {
 };
 
 // Get user statistics
-export const getUserStats = async (req, res) => {
+export const getUserStats = async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
   try {
     const userId = req.user.userId;
     const tenantId = req.user.tenantId;

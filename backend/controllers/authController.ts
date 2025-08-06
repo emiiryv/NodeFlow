@@ -1,10 +1,11 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import prisma from '../models/db.js';
+import prisma from '../models/db';
+import { Request, Response } from 'express';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_key';
 
-export const register = async (req, res) => {
+export const register = async (req: Request, res: Response) => {
   try {
     const { email, password, name, username, tenantId } = req.body;
 
@@ -46,7 +47,7 @@ export const register = async (req, res) => {
   }
 };
 
-export const login = async (req, res) => {
+export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 

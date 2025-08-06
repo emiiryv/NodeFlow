@@ -1,12 +1,16 @@
-import prisma from '../models/db.js';
-import { extractMetadata } from '../services/metaService.js';
-import { uploadToAzure } from '../services/azureService.js';
-import { compressBuffer } from '../utils/compression.js';
-import { compressVideoBuffer } from '../utils/videoProcessor.js';
+import { Request, Response } from 'express';
+import prisma from '../models/db';
+import { extractMetadata } from '../services/metaService';
+import { uploadToAzure } from '../services/azureService';
+import { compressBuffer } from '../utils/compression';
+import { compressVideoBuffer } from '../utils/videoProcessor';
 
-export const handleUpload = async (req, res) => {
+export const handleUpload = async (req: Request, res: Response) => {
   try {
     const file = req.file;
+    if (!file) {
+      return res.status(400).json({ message: 'Dosya bulunamadı.' });
+    }
 
     const MAX_SIZE_MB = 10;
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
@@ -18,7 +22,7 @@ export const handleUpload = async (req, res) => {
           file.size = compressedSize;
         }
       } else {
-        const { buffer: compressedBuffer, size: compressedSize } = await compressBuffer(file.buffer, file.mimetype);
+        const { buffer: compressedBuffer, size: compressedSize } = await compressBuffer(file.buffer);
         if (compressedBuffer) {
           file.buffer = compressedBuffer;
           file.size = compressedSize;
@@ -32,7 +36,11 @@ export const handleUpload = async (req, res) => {
       buffer: file.buffer,
       mimetype: file.mimetype,
       size: file.buffer.length,
-    }, req.ip, req.user?.tenantId || null);
+    }, req.ip || '', req.user?.tenantId?.toString() || '');//tenantId azure'a string olarak yollanıyor(azure bu şekilde bekliyor)
+
+    if (!req.user?.userId || !req.user?.tenantId || !file.mimetype) {
+      return res.status(400).json({ message: 'Eksik kullanıcı veya tenant bilgisi ya da mimetype.' });
+    }
 
     // Dosyayı veritabanına kaydet
     const newFile = await prisma.file.create({
@@ -40,10 +48,10 @@ export const handleUpload = async (req, res) => {
         filename: azureUploadResult.filename,
         url: azureUploadResult.url,
         size: file.buffer.length,
-        uploaderIp: req.ip,
+        uploaderIp: req.ip || '',
         uploadedAt: azureUploadResult.uploadedAt,
-        userId: req.user?.userId || null,
-        tenantId: req.user?.tenantId || null,
+        userId: req.user.userId,
+        tenantId: req.user.tenantId,
         mimetype: file.mimetype,
       },
     });
@@ -54,21 +62,27 @@ export const handleUpload = async (req, res) => {
     if (file.mimetype.startsWith('video/')) {
       metadata = await extractMetadata(file.buffer);
 
-      newVideo = await prisma.video.create({
-        data: {
-          fileId: newFile.id,
-          duration: metadata?.duration || null,
-          format: metadata?.format || null,
-          resolution: metadata?.resolution || null,
-          filename: file.originalname,
-          url: azureUploadResult.url,
-          size: file.buffer.length,
-          uploadedAt: azureUploadResult.uploadedAt,
-          user: req.user?.userId ? { connect: { id: req.user.userId } } : undefined,
-          tenant: req.user?.tenantId ? { connect: { id: req.user.tenantId } } : undefined,
-          mimetype: file.mimetype,
-        },
-      });
+      const videoData: any = {
+        fileId: newFile.id,
+        duration: metadata?.duration || null,
+        format: metadata?.format || null,
+        resolution: metadata?.resolution || null,
+        filename: file.originalname,
+        url: azureUploadResult.url,
+        size: file.buffer.length,
+        uploadedAt: azureUploadResult.uploadedAt,
+        mimetype: file.mimetype,
+      };
+
+      if (req.user?.userId) {
+        videoData.user = { connect: { id: req.user.userId } };
+      }
+
+      if (req.user?.tenantId) {
+        videoData.tenant = { connect: { id: req.user.tenantId } };
+      }
+
+      newVideo = await prisma.video.create({ data: videoData });
     }
 
     res.status(200).json({

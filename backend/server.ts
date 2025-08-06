@@ -1,8 +1,8 @@
 import cors from 'cors';
-import './scripts/blobCleanup.js';
-import app from './app.js';
-import authRoutes from './routes/auth.js';
-import userRoutes from './routes/user.js';
+import './scripts/blobCleanup';
+import app from './app';
+import authRoutes from './routes/authRoutes';
+import userRoutes from './routes/userRoutes';
 import dotenv from 'dotenv';
 dotenv.config();
 

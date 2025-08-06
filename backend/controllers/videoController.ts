@@ -1,14 +1,17 @@
+import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+
 const prisma = new PrismaClient();
 
-// GET /videos
-const getVideos = async (req, res) => {
+const getVideos = async (req: Request, res: Response) => {
   const role = req.user?.role;
   const tenantId = req.user?.tenantId;
 
   try {
+    const whereCondition = role === 'admin' ? {} : tenantId ? { tenantId } : {};
+
     const videos = await prisma.video.findMany({
-      where: role === 'admin' ? {} : { tenantId },
+      where: whereCondition,
       include: {
         user: true,
         tenant: true,
@@ -23,8 +26,7 @@ const getVideos = async (req, res) => {
   }
 };
 
-// GET /videos/:id
-const getVideoById = async (req, res) => {
+const getVideoById = async (req: Request, res: Response) => {
   try {
     const video = await prisma.video.findUnique({
       where: { id: Number(req.params.id) }
@@ -38,14 +40,16 @@ const getVideoById = async (req, res) => {
   }
 };
 
-// GET /videos/my
-const getMyVideos = async (req, res) => {
+const getMyVideos = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.userId || req.user?.id;
+    const userId = req.user?.userId;
+    const tenantId = req.user?.tenantId;
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+
+    const whereCondition = tenantId ? { uploadedBy: userId, tenantId } : { uploadedBy: userId };
+
     const videos = await prisma.video.findMany({
-      where: {
-        uploadedBy: userId,
-      },
+      where: whereCondition,
       orderBy: {
         uploadedAt: 'desc',
       },
@@ -53,31 +57,33 @@ const getMyVideos = async (req, res) => {
 
     res.status(200).json(videos);
   } catch (error) {
-    console.error('Kullanıcı videoları alınamadı:', error);
-    res.status(500).json({ message: 'Videolar alınırken hata oluştu.' });
+    console.error('User videos fetch error:', error);
+    res.status(500).json({ message: 'Error fetching videos' });
   }
 };
 
-import { uploadToAzure } from '../services/azureService.js';
-import { extractMetadata } from '../services/metaService.js';
-import { compressVideoBuffer } from '../utils/videoProcessor.js';
-import { optimizeVideo } from '../services/metaService.js';
+import { uploadToAzure } from '../services/azureService';
+import { extractMetadata } from '../services/metaService';
+import { compressVideoBuffer } from '../utils/videoProcessor';
+import { optimizeVideo } from '../services/metaService';
 
-const uploadVideo = async (req, res) => {
+const uploadVideo = async (req: Request, res: Response) => {
   const { title, description } = req.body;
   const file = req.file;
-  const userId = req.user?.userId || req.user?.id;
+  const userId = req.user?.userId;
+  const tenantId = req.user?.tenantId;
 
   if (!file) return res.status(400).json({ message: 'No video file uploaded' });
+  if (!userId) return res.status(401).json({ message: 'Unauthorized' });
 
   try {
-    // Optional: Optimize video before compression and upload
+    // Optimize video
     const optimizedBuffer = await optimizeVideo(file.buffer, file.originalname);
     if (optimizedBuffer) {
       file.buffer = optimizedBuffer;
       file.size = optimizedBuffer.length;
     }
-    // Compress if too large
+    // Compress large video
     const MAX_SIZE_MB = 200;
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
       const { buffer: compressedBuffer, size: compressedSize } = await compressVideoBuffer(file.buffer);
@@ -87,13 +93,13 @@ const uploadVideo = async (req, res) => {
       }
     }
 
-    // Upload to Azure
+    // Upload to Azure - tenantId converted to string safely
     const azureUploadResult = await uploadToAzure({
       originalname: file.originalname,
       buffer: file.buffer,
       mimetype: file.mimetype,
       size: file.size,
-    }, req.ip, req.user?.tenantId || null);
+    }, req.ip ?? '', tenantId?.toString() ?? '');
 
     // Save file record
     const newFile = await prisma.file.create({
@@ -101,11 +107,11 @@ const uploadVideo = async (req, res) => {
         filename: azureUploadResult.filename,
         url: azureUploadResult.url,
         size: azureUploadResult.size,
-        uploaderIp: req.ip,
+        uploaderIp: req.ip ?? '',
         uploadedAt: azureUploadResult.uploadedAt,
-        userId: userId || null,
-        tenantId: req.user?.tenantId || null,
-        mimetype: file?.mimetype || 'application/octet-stream',
+        userId,
+        tenantId: tenantId ?? null,
+        mimetype: file.mimetype || 'application/octet-stream',
       },
     });
 
@@ -117,14 +123,14 @@ const uploadVideo = async (req, res) => {
         fileId: newFile.id,
         title,
         description,
-        duration: metadata?.duration || null,
-        format: metadata?.format || null,
-        resolution: metadata?.resolution || null,
+        duration: metadata?.duration ?? null,
+        format: metadata?.format ?? null,
+        resolution: metadata?.resolution ?? null,
         filename: newFile.filename,
         url: newFile.url,
         size: azureUploadResult.size,
         uploadedBy: userId,
-        tenantId: req.user?.tenantId || null,
+        tenantId: tenantId ?? null,
       },
     });
 
@@ -140,13 +146,12 @@ const uploadVideo = async (req, res) => {
   }
 };
 
-// DELETE /videos/:id
-const deleteVideo = async (req, res) => {
+const deleteVideo = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.userId || req.user?.id;
+    const userId = req.user?.userId;
     const role = req.user?.role;
+    const tenantId = req.user?.tenantId;
 
-    // Find the video including the associated file
     const video = await prisma.video.findUnique({
       where: { id: Number(req.params.id) },
       include: { file: true },
@@ -154,17 +159,14 @@ const deleteVideo = async (req, res) => {
 
     if (!video) return res.status(404).json({ message: 'Video not found' });
 
-    // Authorization check
     if (role !== 'admin' && video.uploadedBy !== userId) {
-      return res.status(403).json({ message: 'Bu videoyu silme yetkiniz yok.' });
+      return res.status(403).json({ message: 'You do not have permission to delete this video.' });
     }
 
-    // First delete the video entry (to remove foreign key reference)
     await prisma.video.delete({
       where: { id: Number(req.params.id) },
     });
 
-    // Then delete the associated file
     await prisma.file.delete({
       where: { id: video.fileId },
     });

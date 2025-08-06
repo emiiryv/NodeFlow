@@ -23,19 +23,18 @@ model File {
   id         Int      @id @default(autoincrement())
   filename   String
   url        String
-  size       Int?
+  size       Int
   mimetype   String
   uploadedAt DateTime @default(now())
-  uploaderIp String?
+  uploaderIp String
 
-  userId   Int?
-  user     user?    @relation(fields: [userId], references: [id])
+  userId   Int
+  user     user    @relation(fields: [userId], references: [id])
 
-  tenantId Int?
-  tenant   Tenant?  @relation(fields: [tenantId], references: [id])
+  tenantId Int
+  tenant   Tenant  @relation(fields: [tenantId], references: [id])
 
   accessLogs AccessLog[]
-
   videos    Video[]
 
   @@map("file")

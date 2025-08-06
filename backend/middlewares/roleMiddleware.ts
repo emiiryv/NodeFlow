@@ -5,9 +5,18 @@
  *   - isAdmin
  *   - isTenantAdmin
  */
+import { Request, Response, NextFunction } from 'express';
 
-export const allowRoles = (...allowedRoles) => {
-  return (req, res, next) => {
+interface AuthenticatedRequest extends Request {
+  user?: {
+    userId: number;
+    tenantId: number;
+    role: string;
+  };
+}
+
+export const allowRoles = (...allowedRoles: string[]) => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     const user = req.user;
 
     if (!user || !allowedRoles.includes(user.role)) {

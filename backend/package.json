@@ -2,10 +2,12 @@
   "name": "backend",
   "version": "1.0.0",
   "type": "module",
-  "main": "app.js",
+  "main": "dist/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "dev": "ts-node server.ts",
+    "build": "tsc && node postbuild.js",
+    "start": "node dist/server.js",
+    "lint": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",
@@ -28,7 +30,15 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/fluent-ffmpeg": "^2.1.27",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/jwt-decode": "^2.2.1",
+    "@types/morgan": "^1.9.10",
+    "@types/multer": "^2.0.0",
+    "@types/streamifier": "^0.1.2",
     "prisma": "^6.12.0"
   }
 }

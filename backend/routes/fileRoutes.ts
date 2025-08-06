@@ -1,17 +1,17 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import multer from 'multer';
-import { handleUpload } from '../controllers/uploadController.js';
+import { handleUpload } from '../controllers/uploadController';
 import {
   getUserFiles,
   getTenantFiles,
   getFileById,
   updateFileName,
   deleteFileById
-} from '../controllers/fileController.js';
+} from '../controllers/fileController';
 
-import { upload } from '../middlewares/uploadMiddleware.js';
-import { verifyToken } from '../middlewares/authMiddleware.js';
-import { isAdmin, isTenantAdmin } from '../middlewares/roleMiddleware.js';
+import { upload } from '../middlewares/uploadMiddleware';
+import { verifyToken } from '../middlewares/authMiddleware';
+import { isAdmin, isTenantAdmin } from '../middlewares/roleMiddleware';
 
 const router = express.Router();
 

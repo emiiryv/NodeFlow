@@ -1,6 +1,6 @@
 import express from 'express';
-import { isAdmin, isTenantAdmin } from '../middlewares/roleMiddleware.js';
-import { authenticate } from '../middlewares/authMiddleware.js';
+import { isAdmin, isTenantAdmin } from '../middlewares/roleMiddleware';
+import { authenticate } from '../middlewares/authMiddleware';
 import {
   getAllUsers,
   getTenantUsers,
@@ -12,7 +12,7 @@ import {
   getAllTenants,
   deleteVideoById,
   getAdminVideos
-} from '../controllers/adminController.js';
+} from '../controllers/adminController';
 
 const router = express.Router();
 

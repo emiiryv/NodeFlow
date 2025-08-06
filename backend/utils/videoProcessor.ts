@@ -14,7 +14,10 @@ const unlink = promisify(fs.unlink);
  * @param {string} mimetype - MIME type of the video
  * @returns {Promise<{ buffer: Buffer, size: number }>} - Compressed video buffer and new size
  */
-export const compressVideoBuffer = async (buffer, mimetype = '') => {
+export const compressVideoBuffer = async (
+  buffer: Buffer,
+  mimetype: string = ''
+): Promise<{ buffer: Buffer; size: number }> => {
   const tempInput = path.join(os.tmpdir(), `input-${Date.now()}.mov`);
   const tempOutput = path.join(os.tmpdir(), `output-${Date.now()}.mp4`);
 

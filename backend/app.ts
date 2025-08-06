@@ -2,11 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
-import fileRoutes from './routes/fileRoutes.js';
-import authRoutes from './routes/auth.js';
-import userRoutes from './routes/user.js';
-import adminRoutes from './routes/adminRoutes.js';
-import videoRoutes from './routes/videoRoutes.js';
+import fileRoutes from './routes/fileRoutes';
+import authRoutes from './routes/authRoutes';
+import userRoutes from './routes/userRoutes';
+import adminRoutes from './routes/adminRoutes';
+import videoRoutes from './routes/videoRoutes';
 
 dotenv.config();
 

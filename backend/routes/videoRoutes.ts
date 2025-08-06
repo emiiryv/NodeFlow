@@ -1,8 +1,8 @@
 import express from 'express';
-import videoController from '../controllers/videoController.js';
-import { verifyToken } from '../middlewares/authMiddleware.js';
-import { isTenantAdmin, isAdmin } from '../middlewares/roleMiddleware.js';
-import { uploadVideo } from '../middlewares/uploadMiddleware.js';
+import videoController from '../controllers/videoController';
+import { verifyToken } from '../middlewares/authMiddleware';
+import { isTenantAdmin, isAdmin } from '../middlewares/roleMiddleware';
+import { uploadVideo } from '../middlewares/uploadMiddleware';
 
 const router = express.Router();
 
