@@ -1,5 +1,5 @@
 import cors from 'cors';
-import './scripts/blobCleanup';
+import { scheduleBlobCleanup } from './scripts/blobCleanup';
 import app from './app';
 import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
@@ -18,6 +18,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 
 const PORT = process.env.PORT || 3001;
+
+scheduleBlobCleanup();
 
 app.listen(PORT, () => {
   console.log(`NodeFlow backend running on port ${PORT}`);

@@ -42,5 +42,11 @@ async function cleanupOrphanedBlobs() {
   }
 }
 
-// Run every day at 3 AM
-cron.schedule('0 3 * * *', cleanupOrphanedBlobs);
+
+export function scheduleBlobCleanup() {
+  console.log('[Cron] Scheduling blob cleanup every 10 minute...');
+  cron.schedule('*/10 * * * *', () => {
+    console.log('[Cron] Triggered blob cleanup at', new Date().toISOString());
+    cleanupOrphanedBlobs();
+  });
+}
