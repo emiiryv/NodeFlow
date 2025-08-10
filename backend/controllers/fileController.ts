@@ -2,64 +2,6 @@ import { Request, Response } from 'express';
 import { uploadToAzure, deleteFromAzure } from '../services/azureService';
 import prisma from '../models/db';
 
-export const handleFileUpload = async (req: Request, res: Response) => {
-  try {
-    const file = req.file;
-    if (!file) return res.status(400).json({ error: 'No file provided.' });
-
-    const tenantId: number | null = req.user?.tenantId ?? null;
-    const userId: number | null = req.user?.userId ?? null;
-
-    // Check for userId and tenantId before uploading file
-    if (userId === null || tenantId === null) {
-      return res.status(401).json({ error: 'Unauthorized: Missing user or tenant.' });
-    }
-
-    const uploaderIp = req.ip ?? '';
-
-    const uploadResult: {
-      filename: string;
-      url: string;
-      size: number;
-      mimetype: string;
-      uploaderIp: string;
-    } = await uploadToAzure(file, uploaderIp, tenantId.toString());
-
-    if (
-      uploadResult.size === undefined ||
-      !uploadResult.uploaderIp
-    ) {
-      return res.status(400).json({ error: 'Missing required upload metadata.' });
-    }
-
-    const userConnect = { connect: { id: userId } };
-    const tenantConnect = { connect: { id: tenantId } };
-
-    const savedFile = await prisma.file.create({
-      data: {
-        filename: uploadResult.filename,
-        url: uploadResult.url,
-        size: uploadResult.size,
-        mimetype: uploadResult.mimetype,
-        uploaderIp: uploadResult.uploaderIp,
-        uploadedAt: new Date(),
-        user: userConnect,
-        tenant: tenantConnect,
-      }
-    });
-
-    res.status(200).json({
-      message: 'File upload successful',
-      data: {
-        file: savedFile,
-        blobUri: savedFile.url
-      }
-    });
-  } catch (err) {
-    console.error('File upload error:', err);
-    res.status(500).json({ error: 'File upload failed' });
-  }
-};
 
 export const getUserFiles = async (req: Request, res: Response) => {
   try {

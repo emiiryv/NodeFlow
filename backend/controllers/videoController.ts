@@ -1,38 +1,70 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../models/db';
+import { uploadToAzure } from '../services/azureService';
+import { extractMetadata, optimizeVideo } from '../services/metaService';
+import { compressVideoBuffer } from '../utils/videoProcessor';
 
-const prisma = new PrismaClient();
+import type { Prisma } from '@prisma/client';
 
 const getVideos = async (req: Request, res: Response) => {
   const role = req.user?.role;
   const tenantId = req.user?.tenantId;
 
   try {
-    const whereCondition = role === 'admin' ? {} : tenantId ? { tenantId } : {};
+    if (role !== 'admin') {
+      if (!tenantId) {
+        return res.status(403).json({ message: 'Forbidden: Tenant context is required.' });
+      }
+    }
+
+    let whereCondition: Prisma.VideoWhereInput = {};
+    if (role !== 'admin') {
+      // tenantId burada kesin number, undefined değil
+      whereCondition = { tenantId: tenantId! };
+      // Alternatif olarak:
+      // whereCondition = { tenantId: { equals: tenantId! } };
+    }
 
     const videos = await prisma.video.findMany({
       where: whereCondition,
-      include: {
-        user: true,
-        tenant: true,
-      },
-      orderBy: { uploadedAt: 'desc' }
+      include: { user: true, tenant: true },
+      orderBy: { uploadedAt: 'desc' },
     });
 
     res.json(videos);
   } catch (error) {
-    console.error('Video fetch error:', error);
+    console.error('Videos fetch error:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
 
 const getVideoById = async (req: Request, res: Response) => {
   try {
+    const role = req.user?.role;
+    const tenantId = req.user?.tenantId;
+    const userId = req.user?.userId;
+
     const video = await prisma.video.findUnique({
-      where: { id: Number(req.params.id) }
+      where: { id: Number(req.params.id) },
+      include: {
+        user: true,
+        tenant: true,
+        file: true,
+      },
     });
 
     if (!video) return res.status(404).json({ message: 'Video not found' });
+
+    // Access control: non-admins must be same tenant OR uploader
+    if (role !== 'admin') {
+      if (!tenantId) return res.status(403).json({ message: 'Forbidden' });
+      const sameTenant = video.tenantId === tenantId;
+      const isOwner = video.uploadedBy === userId;
+      if (!sameTenant && !isOwner) {
+        return res.status(403).json({ message: 'You do not have permission to view this video.' });
+      }
+    }
+
     res.json(video);
   } catch (error) {
     console.error('Video fetch error:', error);
@@ -50,9 +82,7 @@ const getMyVideos = async (req: Request, res: Response) => {
 
     const videos = await prisma.video.findMany({
       where: whereCondition,
-      orderBy: {
-        uploadedAt: 'desc',
-      },
+      orderBy: { uploadedAt: 'desc' },
     });
 
     res.status(200).json(videos);
@@ -61,11 +91,6 @@ const getMyVideos = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Error fetching videos' });
   }
 };
-
-import { uploadToAzure } from '../services/azureService';
-import { extractMetadata } from '../services/metaService';
-import { compressVideoBuffer } from '../utils/videoProcessor';
-import { optimizeVideo } from '../services/metaService';
 
 const uploadVideo = async (req: Request, res: Response) => {
   const { title, description } = req.body;
@@ -83,6 +108,7 @@ const uploadVideo = async (req: Request, res: Response) => {
       file.buffer = optimizedBuffer;
       file.size = optimizedBuffer.length;
     }
+
     // Compress large video
     const MAX_SIZE_MB = 200;
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
@@ -94,12 +120,16 @@ const uploadVideo = async (req: Request, res: Response) => {
     }
 
     // Upload to Azure - tenantId converted to string safely
-    const azureUploadResult = await uploadToAzure({
-      originalname: file.originalname,
-      buffer: file.buffer,
-      mimetype: file.mimetype,
-      size: file.size,
-    }, req.ip ?? '', tenantId?.toString() ?? '');
+    const azureUploadResult = await uploadToAzure(
+      {
+        originalname: file.originalname,
+        buffer: file.buffer,
+        mimetype: file.mimetype,
+        size: file.size,
+      },
+      req.ip ?? '',
+      tenantId?.toString() ?? ''
+    );
 
     // Save file record
     const newFile = await prisma.file.create({
@@ -159,17 +189,25 @@ const deleteVideo = async (req: Request, res: Response) => {
 
     if (!video) return res.status(404).json({ message: 'Video not found' });
 
-    if (role !== 'admin' && video.uploadedBy !== userId) {
+    // Authorization rules:
+    // - admin: can delete anything
+    // - tenantadmin: can delete if same tenant
+    // - user: can delete if owner (uploadedBy)
+    let allowed = false;
+    if (role === 'admin') {
+      allowed = true;
+    } else if (role === 'tenantadmin') {
+      allowed = video.tenantId === tenantId;
+    } else {
+      allowed = video.uploadedBy === userId;
+    }
+
+    if (!allowed) {
       return res.status(403).json({ message: 'You do not have permission to delete this video.' });
     }
 
-    await prisma.video.delete({
-      where: { id: Number(req.params.id) },
-    });
-
-    await prisma.file.delete({
-      where: { id: video.fileId },
-    });
+    await prisma.video.delete({ where: { id: Number(req.params.id) } });
+    await prisma.file.delete({ where: { id: video.fileId } });
 
     res.status(204).send();
   } catch (error) {
@@ -183,5 +221,5 @@ export default {
   getVideoById,
   uploadVideo,
   deleteVideo,
-  getMyVideos
+  getMyVideos,
 };
