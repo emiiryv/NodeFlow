@@ -73,6 +73,8 @@ const FileListPage: React.FC = () => {
 
   const navigate = useNavigate();
 
+  const API = (axios.defaults.baseURL || '').replace(/\/$/, '');
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) navigate('/login');
@@ -184,7 +186,9 @@ const FileListPage: React.FC = () => {
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {files.map((file) => (
+          {files.map((file) => {
+            const fileBase = `${API}/files/${file.id}/download`;
+            return (
             <Table.Tr key={file.id}>
               <Table.Td>
                 <Anchor onClick={() => navigate(`/files/${file.id}`)}>{file.filename}</Anchor>
@@ -195,12 +199,12 @@ const FileListPage: React.FC = () => {
               <Table.Td>
                 <Group gap="xs" justify="flex-start">
                   <Tooltip label="İndir / Aç">
-                    <ActionIcon onClick={() => window.open(file.url, '_blank')}>
+                    <ActionIcon onClick={() => window.open(fileBase, '_blank')}>
                       <IconDownload size={18} />
                     </ActionIcon>
                   </Tooltip>
                   <Tooltip label="Bağlantıyı kopyala">
-                    <ActionIcon onClick={() => copyLink(file.url)}>
+                    <ActionIcon onClick={() => copyLink(fileBase)}>
                       <IconCopy size={18} />
                     </ActionIcon>
                   </Tooltip>
@@ -217,7 +221,8 @@ const FileListPage: React.FC = () => {
                 </Group>
               </Table.Td>
             </Table.Tr>
-          ))}
+            );
+          })}
         </Table.Tbody>
       </Table>
 
@@ -236,7 +241,9 @@ const FileListPage: React.FC = () => {
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {videos.map((video) => (
+          {videos.map((video) => {
+            const videoBase = `${API}/files/${video.fileId}/download`;
+            return (
             <Table.Tr key={video.id}>
               <Table.Td>
                 <Anchor onClick={() => navigate(`/files/${video.fileId}`)}>{video.filename}</Anchor>
@@ -251,12 +258,12 @@ const FileListPage: React.FC = () => {
               <Table.Td>
                 <Group gap="xs" justify="flex-start">
                   <Tooltip label="İndir / Aç">
-                    <ActionIcon onClick={() => window.open(video.url, '_blank')}>
+                    <ActionIcon onClick={() => window.open(videoBase, '_blank')}>
                       <IconDownload size={18} />
                     </ActionIcon>
                   </Tooltip>
                   <Tooltip label="Bağlantıyı kopyala">
-                    <ActionIcon onClick={() => copyLink(video.url)}>
+                    <ActionIcon onClick={() => copyLink(videoBase)}>
                       <IconCopy size={18} />
                     </ActionIcon>
                   </Tooltip>
@@ -268,7 +275,8 @@ const FileListPage: React.FC = () => {
                 </Group>
               </Table.Td>
             </Table.Tr>
-          ))}
+            );
+          })}
         </Table.Tbody>
       </Table>
 

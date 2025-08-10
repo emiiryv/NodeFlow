@@ -17,19 +17,33 @@ export const verifyToken = async (
   res: Response,
   next: NextFunction
 ) => {
-  const authHeader = req.headers.authorization;
+  let token: string | undefined;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1];
+  } else if (req.cookies && req.cookies.token) {
+    token = req.cookies.token;
+  } else if (req.headers.cookie) {
+    const rawCookies = req.headers.cookie;
+    const parsedCookies = rawCookies.split(';').map(cookie => cookie.trim());
+    for (const cookie of parsedCookies) {
+      if (cookie.startsWith('token=')) {
+        token = cookie.substring('token='.length);
+        break;
+      }
+    }
+  }
+
+  if (!token && typeof req.query.token === 'string') {
+    token = req.query.token;
+  }
+
+  if (!token) {
     return res.status(401).json({ message: 'Token eksik veya geçersiz.' });
   }
 
-  const token = authHeader.split(' ')[1];
-  if (!token) {
-    return res.status(401).json({ message: 'Token eksik.' });
-  }
-
   if (!JWT_SECRET) {
-    console.error('JWT_SECRET environment variable is not set');
     return res.status(500).json({ message: 'Sunucu yapılandırma hatası' });
   }
 
@@ -46,7 +60,6 @@ export const verifyToken = async (
     };
     next();
   } catch (err) {
-    console.error('Token doğrulama hatası:', err);
     return res.status(403).json({ message: 'Geçersiz token.' });
   }
 };

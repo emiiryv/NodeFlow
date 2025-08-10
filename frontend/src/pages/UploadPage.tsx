@@ -14,7 +14,7 @@ import {
   Progress,
   Image,
   Badge,
-  Anchor,
+  // Anchor,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useNavigate } from 'react-router-dom';
@@ -23,6 +23,7 @@ const UploadPage: React.FC = () => {
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  const [uploadedId, setUploadedId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -69,8 +70,10 @@ const UploadPage: React.FC = () => {
         });
 
         const videoUrl = res.data?.blobUri || res.data?.video?.url;
+        const newFileId = res.data?.video?.id || null;
         if (videoUrl) {
           setUploadedUrl(videoUrl);
+          setUploadedId(newFileId);
           notifications.show({ color: 'green', title: 'Başarılı', message: 'Video yüklendi.' });
         } else {
           setError('Yükleme başarılı ancak Azure URL’si alınamadı.');
@@ -95,8 +98,10 @@ const UploadPage: React.FC = () => {
         });
 
         const blobUrl = res.data?.blobUri || res.data?.file?.url;
+        const newFileId = res.data?.file?.id || null;
         if (blobUrl) {
           setUploadedUrl(blobUrl);
+          setUploadedId(newFileId);
           notifications.show({ color: 'green', title: 'Başarılı', message: 'Dosya yüklendi.' });
         } else {
           setError('Yükleme başarılı ancak Azure URL’si alınamadı.');
@@ -183,11 +188,16 @@ const UploadPage: React.FC = () => {
               <Button onClick={handleUpload} disabled={!file || isUploading}>
                 {isUploading ? 'Yükleniyor…' : 'Yükle'}
               </Button>
-              {uploadedUrl && (
+              {uploadedUrl && uploadedId && (
+                <Button variant="subtle" onClick={() => navigate(`/files/${uploadedId}`)}>
+                  Yüklenen dosyaya git
+                </Button>
+              )}
+              {/* {uploadedUrl && (
                 <Anchor href={uploadedUrl} target="_blank" rel="noopener noreferrer">
                   Yüklenen dosyayı aç
                 </Anchor>
-              )}
+              )} */}
             </Group>
 
             {error && <Text c="red" size="sm">{error}</Text>}

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../models/db';
-import { uploadToAzure } from '../services/azureService';
+import { uploadToAzure, parseAzureBlobUrl } from '../services/azureService';
 import { compressBuffer } from '../utils/compression';
 
 export const handleUpload = async (req: Request, res: Response) => {
@@ -39,6 +39,9 @@ export const handleUpload = async (req: Request, res: Response) => {
       req.user?.tenantId?.toString() || ''
     ); // tenantId Azure’a string olarak gider
 
+    // URL'den container ve blobName'i çıkar
+    const { container, blobName } = parseAzureBlobUrl(azureUploadResult.url);
+
     if (!req.user?.userId || !req.user?.tenantId || !file.mimetype) {
       return res
         .status(400)
@@ -56,6 +59,8 @@ export const handleUpload = async (req: Request, res: Response) => {
         userId: req.user.userId,
         tenantId: req.user.tenantId,
         mimetype: file.mimetype,
+        container: container ?? null,
+        blobName: blobName ?? null,
       },
     });
 

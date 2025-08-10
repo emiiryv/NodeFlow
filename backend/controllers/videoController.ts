@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../models/db';
-import { uploadToAzure } from '../services/azureService';
+import { uploadToAzure, parseAzureBlobUrl } from '../services/azureService';
 import { extractMetadata, optimizeVideo } from '../services/metaService';
 import { compressVideoBuffer } from '../utils/videoProcessor';
 
@@ -131,6 +131,13 @@ const uploadVideo = async (req: Request, res: Response) => {
       tenantId?.toString() ?? ''
     );
 
+    // Parse container and blobName from the returned URL
+    const { container, blobName } = parseAzureBlobUrl(azureUploadResult.url);
+
+    if (!tenantId) {
+      return res.status(400).json({ message: 'Tenant context is required' });
+    }
+
     // Save file record
     const newFile = await prisma.file.create({
       data: {
@@ -142,6 +149,8 @@ const uploadVideo = async (req: Request, res: Response) => {
         userId,
         tenantId: tenantId ?? null,
         mimetype: file.mimetype || 'application/octet-stream',
+        container: container ?? null,
+        blobName: blobName ?? null,
       },
     });
 

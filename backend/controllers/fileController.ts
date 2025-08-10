@@ -2,6 +2,96 @@ import { Request, Response } from 'express';
 import { uploadToAzure, deleteFromAzure } from '../services/azureService';
 import prisma from '../models/db';
 
+import { BlobServiceClient } from '@azure/storage-blob';
+import { parseAzureBlobUrl } from '../services/azureService';
+
+export const streamFileById = async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) return res.status(400).send('Invalid id');
+
+    const me = { role: req.user?.role, tenantId: req.user?.tenantId };
+
+    const file = await prisma.file.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        filename: true,
+        mimetype: true,
+        tenantId: true,
+        container: true,
+        blobName: true,
+        url: true,
+      },
+    });
+    if (!file) return res.status(404).send('Not found');
+
+    // Access rule: admin serbest, değilse aynı tenant olmalı
+    if (me.role !== 'admin' && file.tenantId !== me.tenantId) {
+      return res.status(403).send('Forbidden');
+    }
+
+    // container & blobName belirle (legacy kayıtlar için URL parse fallback)
+    let container = file.container ?? null;
+    let blobName = file.blobName ?? null;
+    if (!container || !blobName) {
+      const parsed = parseAzureBlobUrl(file.url);
+      container = parsed.container;
+      blobName = parsed.blobName;
+    }
+    if (!container || !blobName) {
+      return res.status(500).send('Blob location is missing');
+    }
+
+    const connStr = process.env.AZURE_STORAGE_CONNECTION_STRING!;
+    const blobService = BlobServiceClient.fromConnectionString(connStr);
+    const containerClient = blobService.getContainerClient(container);
+    const blobClient = containerClient.getBlobClient(blobName);
+
+    // Blob metadata (Content-Length için)
+    const props = await blobClient.getProperties();
+    const total = props.contentLength ?? undefined;
+
+    // Range desteği (typesafe)
+    const rangeHeader = req.headers.range; // örn: "bytes=0-"
+    let offset = 0;
+    let count: number | undefined = undefined;
+
+    if (typeof rangeHeader === 'string' && total !== undefined) {
+      const m = rangeHeader.match(/bytes=(\d+)-(\d+)?/);
+      if (m && m[1]) {
+        offset = Number.parseInt(m[1], 10);
+        if (m[2]) {
+          const end = Number.parseInt(m[2], 10);
+          if (!Number.isNaN(end) && end >= offset) {
+            count = end - offset + 1;
+          }
+        }
+        res.status(206);
+        res.setHeader('Accept-Ranges', 'bytes');
+        const endByte = count ? offset + count - 1 : (total - 1);
+        res.setHeader('Content-Range', `bytes ${offset}-${endByte}/${total}`);
+      }
+    }
+
+    res.setHeader('Content-Type', file.mimetype);
+    const disposition = (req.query.disposition === 'inline') ? 'inline' : 'attachment';
+    res.setHeader('Content-Disposition', `${disposition}; filename="${encodeURIComponent(file.filename)}"`);
+
+    const dl = await blobClient.download(offset, count);
+    if (!rangeHeader && total !== undefined) {
+      res.setHeader('Content-Length', String(total));
+    }
+
+    // (opsiyonel) erişim logu
+    // await prisma.accessLog.create({ data: { fileId: file.id, ipAddress: req.ip || '', userAgent: req.headers['user-agent'] || '' }});
+
+    dl.readableStreamBody!.pipe(res);
+  } catch (e) {
+    console.error('streamFileById error:', e);
+    res.status(500).send('Internal server error');
+  }
+};
 
 export const getUserFiles = async (req: Request, res: Response) => {
   try {

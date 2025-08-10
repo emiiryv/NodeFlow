@@ -38,3 +38,15 @@ export async function deleteFromAzure(blobName: string): Promise<void> {
   const blockBlobClient = containerClient.getBlockBlobClient(blobName);
   await blockBlobClient.deleteIfExists();
 }
+
+export function parseAzureBlobUrl(url: string): { container: string | null; blobName: string | null } {
+  try {
+    const u = new URL(url);
+    // /container/blob... -> ilk seg container, geri kalanı blob path
+    const [_, container, ...rest] = u.pathname.split('/');
+    if (!container || rest.length === 0) return { container: null, blobName: null };
+    return { container, blobName: rest.join('/') };
+  } catch {
+    return { container: null, blobName: null };
+  }
+}

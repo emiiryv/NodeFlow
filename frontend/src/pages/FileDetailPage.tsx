@@ -89,6 +89,12 @@ const FileDetailPage: React.FC = () => {
   const isImage = file.mimetype?.startsWith('image/');
   const isVideo = file.mimetype?.startsWith('video/') || !!file.video;
 
+  // 🔗 Kendi endpoint'lerimiz (cookie tabanlı auth)
+  const API = (axiosInstance.defaults.baseURL || '').replace(/\/$/, '');
+  const base = `${API}/files/${file.id}/download`;
+  const streamUrl = `${base}?disposition=inline`;
+  const downloadUrl = `${base}`;
+
   return (
     <Box>
       <Title order={2} mb="sm">Dosya Detayı</Title>
@@ -103,18 +109,20 @@ const FileDetailPage: React.FC = () => {
             </Group>
 
             {isImage && (
-              <Image src={file.url} alt={file.filename} radius="md" h={360} fit="contain" />
+              // 👇 Artık blob değil kendi stream endpoint'imizden
+              <Image src={streamUrl} alt={file.filename} radius="md" h={360} fit="contain" />
             )}
 
             {isVideo && (
               <Box style={{ aspectRatio: '16/9' }}>
-                <video src={file.url} controls style={{ width: '100%', height: '100%' }} />
+                {/* 👇 Video da backend stream endpoint'iyle */}
+                <video src={streamUrl} controls style={{ width: '100%', height: '100%' }} />
               </Box>
             )}
 
             {!isImage && !isVideo && (
               <Group mt="sm">
-                <Button leftSection={<IconExternalLink size={16} />} onClick={() => window.open(file.url, '_blank')}>
+                <Button leftSection={<IconExternalLink size={16} />} onClick={() => window.open(downloadUrl, '_blank')}>
                   Dosyayı Aç
                 </Button>
               </Group>
@@ -128,7 +136,7 @@ const FileDetailPage: React.FC = () => {
             )}
 
             <Group mt="sm" justify="flex-end">
-              <CopyButton value={file.url} timeout={1500}>
+              <CopyButton value={downloadUrl} timeout={1500}>
                 {({ copied, copy }) => (
                   <Tooltip label={copied ? 'Kopyalandı' : 'Kopyala'} withArrow>
                     <ActionIcon variant="subtle" onClick={copy} aria-label="Bağlantıyı kopyala">
@@ -138,7 +146,7 @@ const FileDetailPage: React.FC = () => {
                 )}
               </CopyButton>
               <Tooltip label="İndir / Aç" withArrow>
-                <ActionIcon variant="subtle" onClick={() => window.open(file.url, '_blank')} aria-label="İndir veya aç">
+                <ActionIcon variant="subtle" onClick={() => window.open(downloadUrl, '_blank')} aria-label="İndir veya aç">
                   <IconDownload size={18} />
                 </ActionIcon>
               </Tooltip>
@@ -165,10 +173,16 @@ const FileDetailPage: React.FC = () => {
             </Group>
             <Group gap="xs" mb={6} wrap="nowrap">
               <Text c="dimmed">URL:</Text>
-              <Anchor href={file.url} target="_blank" rel="noopener noreferrer" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
-                {file.url}
+              {/* 👇 Anchor artık kendi endpoint'imize işaret ediyor */}
+              <Anchor
+                href={downloadUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}
+              >
+                {downloadUrl}
               </Anchor>
-              <CopyButton value={file.url} timeout={1500}>
+              <CopyButton value={downloadUrl} timeout={1500}>
                 {({ copied, copy }) => (
                   <Tooltip label={copied ? 'Kopyalandı' : 'Kopyala'} withArrow>
                     <ActionIcon variant="subtle" onClick={copy} aria-label="URL'i kopyala">
@@ -225,7 +239,8 @@ const FileDetailPage: React.FC = () => {
             <Card withBorder radius="lg" p="md" mt="md">
               <Title order={4} mb="xs">Thumbnail</Title>
               <Divider mb="sm" />
-              <Image src={file.thumbnailUrl} alt="Video Thumbnail" radius="md" w={260} fit="contain" />
+              {/* Thumbnail da istersen streamUrl ile gelebilir; şimdilik doğrudan gösteriyoruz */}
+              <Image src={streamUrl} alt="Video Thumbnail" radius="md" w={260} fit="contain" />
             </Card>
           )}
         </Grid.Col>

@@ -28,6 +28,10 @@ model File {
   uploadedAt DateTime @default(now())
   uploaderIp String
 
+  // NEW (nullable başlayalım, sonra doldururuz)
+  container  String?   // azure container adı
+  blobName   String?   // container içindeki yol/dosya adı (path)
+
   userId   Int
   user     user    @relation(fields: [userId], references: [id])
 

@@ -67,9 +67,25 @@ export const login = async (req: Request, res: Response) => {
 
     const token = jwt.sign({ userId: user.id, tenantId: user.tenantId }, JWT_SECRET, { expiresIn: '7d' });
 
+    res.cookie('token', token, {
+      httpOnly: true,
+      sameSite: 'none', // cross-site cookie için gerekli
+      secure: true,     // HTTPS zorunlu
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
     res.status(200).json({ message: 'Giriş başarılı.', token });
   } catch (error) {
     console.error('Giriş hatası:', error);
     res.status(500).json({ message: 'Giriş sırasında bir hata oluştu.' });
   }
+};
+
+export const logout = (req: Request, res: Response) => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    sameSite: 'none',
+    secure: true
+  });
+  res.status(200).json({ message: 'Çıkış başarılı.' });
 };
