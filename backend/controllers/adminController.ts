@@ -22,7 +22,10 @@ export const getAllUsers = async (req: Request, res: Response) => {
         : {};
 
     const users = await prisma.user.findMany({
-      where: tenantFilter,
+      where: {
+        ...tenantFilter,
+        role: 'user',
+      },
       select: {
         id: true,
         name: true,
@@ -211,7 +214,7 @@ export const getTenantUsers = async (req: Request, res: Response) => {
     }
 
     const users = await prisma.user.findMany({
-      where: { tenantId },
+      where: { tenantId, role: 'user' },
       select: {
         id: true,
         name: true,
