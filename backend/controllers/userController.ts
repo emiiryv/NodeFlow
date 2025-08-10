@@ -16,7 +16,10 @@ export const getUserProfile = async (req: Request, res: Response) => {
         email: true,
         role: true,
         createdAt: true,
-        tenantId: true
+        tenantId: true,
+        tenant: {
+          select: { id: true, name: true }
+        }
       },
     });
 

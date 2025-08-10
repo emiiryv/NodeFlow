@@ -2,7 +2,8 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import axios from '../api/axiosInstance';
-
+import { Group, Button, Menu, ActionIcon } from '@mantine/core';
+import { IconMenu2 } from '@tabler/icons-react';
 
 const Navbar: React.FC = () => {
   const navigate = useNavigate();
@@ -39,43 +40,68 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <nav className="bg-white shadow-md border-b">
-      <div className="w-full max-w-7xl mx-auto px-4 py-2 flex flex-wrap justify-between items-center">
-        {isLoggedIn ? (
-          <>
-            <div className="flex flex-wrap gap-4 items-center">
-              <Link to="/" className="text-gray-700 hover:text-blue-600 font-medium">Ana Sayfa</Link>
-              <Link to="/files" className="text-gray-700 hover:text-blue-600 font-medium">Dosyalar</Link>
-              {userRole !== 'admin' && (
-                <Link to="/tenant-files" className="text-gray-700 hover:text-blue-600 font-medium">Tenant Dosyaları</Link>
-              )}
-              <Link to="/stats" className="text-gray-700 hover:text-blue-600 font-medium">İstatistikler</Link>
-              {(userRole === 'admin' || userRole === 'tenantadmin') && (
-                <>
-                  <Link to="/admin" className="text-gray-700 hover:text-blue-600 font-medium">Admin Paneli</Link>
-                  <Link to="/admin/user-management" className="text-gray-700 hover:text-blue-600 font-medium">Kullanıcı Yönetimi</Link>
-                  <Link to="/admin/file-management" className="text-gray-700 hover:text-blue-600 font-medium">Dosya Yönetimi</Link>
-                </>
-              )}
-              <Link to="/profile" className="text-gray-700 hover:text-blue-600 font-medium">Profil</Link>
-            </div>
-            <div>
-              <button
-                onClick={handleLogout}
-                className="bg-red-500 hover:bg-red-600 text-white font-medium px-4 py-1 rounded"
-              >
-                Çıkış Yap
-              </button>
-            </div>
-          </>
-        ) : (
-          <div className="flex space-x-4">
-            <Link to="/login" className="px-4 py-2 text-sm font-medium rounded shadow transition-all duration-200 bg-white text-purple-700 hover:bg-gray-100">Giriş Yap</Link>
-            <Link to="/register" className="px-4 py-2 text-sm font-medium rounded shadow transition-all duration-200 bg-yellow-400 text-white hover:bg-yellow-500">Kayıt Ol</Link>
-          </div>
-        )}
-      </div>
-    </nav>
+    <Group justify="space-between" w="100%" h={56} align="center" wrap="nowrap" gap="md">
+      {isLoggedIn ? (
+        <>
+          <Group gap="sm" wrap="nowrap" align="center">
+            <Button variant="subtle" size="md" component={Link} to="/">Ana Sayfa</Button>
+            <Button variant="subtle" size="md" component={Link} to="/files">Dosyalar</Button>
+            {userRole !== 'admin' && (
+              <Button variant="subtle" size="md" component={Link} to="/tenant-files">
+                Tenant Dosyaları
+              </Button>
+            )}
+            <Button variant="subtle" size="md" component={Link} to="/stats">İstatistikler</Button>
+            {(userRole === 'admin' || userRole === 'tenantadmin') && (
+              <Menu>
+                <Menu.Target>
+                  <Button variant="subtle" size="md" style={{ cursor: 'pointer' }}>Admin</Button>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Item component={Link} to="/admin/user-management">Kullanıcı Yönetimi</Menu.Item>
+                  <Menu.Item component={Link} to="/admin/file-management">Dosya Yönetimi</Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
+            )}
+          </Group>
+          <Menu position="bottom-end" shadow="md">
+            <Menu.Target>
+              <ActionIcon variant="subtle" size="lg" aria-label="Menü">
+                <IconMenu2 />
+              </ActionIcon>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Item component={Link} to="/profile">Profil</Menu.Item>
+              <Menu.Item onClick={handleLogout} color="red">Çıkış Yap</Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
+        </>
+      ) : (
+        // Navbar.tsx - logged-out (isLoggedIn === false) kısmı
+<Group gap="sm">
+  <Button
+    variant="subtle"
+    size="md"
+    component={Link}
+    to="/login"
+    type="button"
+  >
+    Giriş Yap
+  </Button>
+  <Button
+    variant="filled"
+    color="grape"
+    size="md"
+    radius="md"
+    component={Link}
+    to="/register"
+    type="button"
+  >
+    Kayıt Ol
+  </Button>
+</Group>
+      )}
+    </Group>
   );
 };
 

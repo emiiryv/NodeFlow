@@ -1,127 +1,173 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import axios from '../api/axiosInstance';
+import {
+  Box,
+  Card,
+  Title,
+  Text,
+  Group,
+  Avatar,
+  Button,
+  TextInput,
+  PasswordInput,
+  Modal,
+  Divider,
+  Badge,
+} from '@mantine/core';
+import { notifications } from '@mantine/notifications';
+import { IconKey } from '@tabler/icons-react';
 
 interface User {
   id: number;
   name: string;
   email: string;
-  role: string;
+  role: 'user' | 'tenantadmin' | 'admin';
   createdAt: string;
+  tenant?: { id: number; name: string };
 }
 
 const UserProfilePage: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
+
+  const [pwdOpen, setPwdOpen] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  const initials = useMemo(() => {
+    const source = (name || user?.name || user?.email || '').trim();
+    if (!source) return 'U';
+    const parts = source.split(' ').filter(Boolean);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return source.slice(0, 2).toUpperCase();
+  }, [name, user]);
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await axios.get('/users/me');
-        setUser(response.data.user);
-        setName(response.data.user.name || '');
-        setEmail(response.data.user.email);
+        const res = await axios.get('/users/me');
+        const u: User = res.data.user;
+        setUser(u);
+        setName(u?.name || '');
+        setEmail(u?.email || '');
       } catch (error) {
         console.error('Kullanıcı verisi alınamadı:', error);
       }
     };
-
     fetchUser();
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveProfile = async () => {
     try {
       await axios.put('/users/me', { name, email });
-      setMessage('Profil başarıyla güncellendi.');
+      setUser((prev) => (prev ? { ...prev, name, email } : prev));
+      notifications.show({ color: 'green', title: 'Güncellendi', message: 'Profil başarıyla güncellendi.' });
     } catch (error) {
       console.error('Profil güncellenirken hata:', error);
-      setMessage('Profil güncellenemedi.');
-    }
-    if (currentPassword && newPassword && confirmPassword) {
-      if (newPassword !== confirmPassword) {
-        setMessage('Yeni parolalar uyuşmuyor.');
-        return;
-      }
-      try {
-        await axios.put('/users/change-password', {
-          currentPassword,
-          newPassword,
-        });
-        setMessage('Parola başarıyla güncellendi.');
-      } catch (error) {
-        console.error('Parola değiştirilemedi:', error);
-        setMessage('Parola güncellenemedi.');
-      }
+      notifications.show({ color: 'red', title: 'Hata', message: 'Profil güncellenemedi.' });
     }
   };
 
-  if (!user) return <div>Yükleniyor...</div>;
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      notifications.show({ color: 'yellow', title: 'Eksik bilgi', message: 'Lütfen tüm alanları doldurun.' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      notifications.show({ color: 'red', title: 'Hata', message: 'Yeni parolalar uyuşmuyor.' });
+      return;
+    }
+    try {
+      await axios.put('/users/change-password', { currentPassword, newPassword });
+      notifications.show({ color: 'green', title: 'Başarılı', message: 'Parola güncellendi.' });
+      setPwdOpen(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      console.error('Parola değiştirilemedi:', error);
+      notifications.show({ color: 'red', title: 'Hata', message: 'Parola güncellenemedi.' });
+    }
+  };
+
+  if (!user) return <Text>Yükleniyor…</Text>;
 
   return (
-    <div className="profile-container">
-      <h2>Kullanıcı Profili</h2>
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="name">Ad:</label>
-          <input
-            id="name"
-            type="text"
+    <Box>
+      <Title order={2} mb="sm">Kullanıcı Profili</Title>
+
+      <Card withBorder radius="lg" p="lg">
+        <Group justify="space-between" align="center" mb="md" wrap="wrap">
+          <Group align="center" gap="md">
+            <Avatar radius="xl" size={64}>{initials}</Avatar>
+            <div>
+              <Text fw={700} fz="lg">{user.name || 'İsimsiz Kullanıcı'}</Text>
+              <Text c="dimmed" fz="sm">{user.email}</Text>
+              <Group gap="xs" mt={6}>
+                <Badge variant="light">{user.role}</Badge>
+                {user.tenant?.name && <Badge variant="light" color="grape">Tenant: {user.tenant.name}</Badge>}
+                <Badge variant="light" color="gray">
+                  Üyelik: {new Date(user.createdAt).toLocaleDateString()}
+                </Badge>
+              </Group>
+            </div>
+          </Group>
+
+          <Group gap="sm">
+            <Button leftSection={<IconKey size={16} />} variant="outline" onClick={() => setPwdOpen(true)}>
+              Şifre Değiştir
+            </Button>
+            <Button onClick={handleSaveProfile}>Kaydet</Button>
+          </Group>
+        </Group>
+
+        <Divider my="md" />
+
+        <Group grow align="start">
+          <TextInput
+            label="Ad"
+            placeholder="Ad Soyad"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => setName(e.currentTarget.value)}
           />
-        </div>
-        <div className="form-group">
-          <label htmlFor="email">E-posta:</label>
-          <input
-            id="email"
-            type="email"
+          <TextInput
+            label="E‑posta"
+            placeholder="ornek@mail.com"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.currentTarget.value)}
           />
-        </div>
-        <fieldset>
-          <legend>Parola Değiştir</legend>
-          <div className="form-group">
-            <label htmlFor="currentPassword">Mevcut Parola:</label>
-            <input
-              id="currentPassword"
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="newPassword">Yeni Parola:</label>
-            <input
-              id="newPassword"
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="confirmPassword">Yeni Parolayı Onayla:</label>
-            <input
-              id="confirmPassword"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-            />
-          </div>
-        </fieldset>
-        <button className="update-button" type="submit">Güncelle</button>
-      </form>
-      {message && <p>{message}</p>}
-      <div className="user-meta">
-        <p>Rol: {user.role}</p>
-        <p>Üyelik Tarihi: {new Date(user.createdAt).toLocaleDateString()}</p>
-      </div>
-    </div>
+        </Group>
+      </Card>
+
+      {/* Şifre Değiştir Modalı */}
+      <Modal opened={pwdOpen} onClose={() => setPwdOpen(false)} title="Parola Değiştir" centered>
+        <PasswordInput
+          label="Mevcut Parola"
+          value={currentPassword}
+          onChange={(e) => setCurrentPassword(e.currentTarget.value)}
+          mb="sm"
+        />
+        <PasswordInput
+          label="Yeni Parola"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.currentTarget.value)}
+          mb="sm"
+        />
+        <PasswordInput
+          label="Yeni Parolayı Onayla"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.currentTarget.value)}
+          mb="md"
+        />
+        <Group justify="end">
+          <Button variant="default" onClick={() => setPwdOpen(false)}>Vazgeç</Button>
+          <Button onClick={handleChangePassword}>Kaydet</Button>
+        </Group>
+      </Modal>
+    </Box>
   );
 };
 

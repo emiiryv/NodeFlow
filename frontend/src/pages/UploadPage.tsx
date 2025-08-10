@@ -1,35 +1,56 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../api/axiosInstance';
+import {
+  Box,
+  Button,
+  Card,
+  Group,
+  Stack,
+  Text,
+  Title,
+  FileInput,
+  TextInput,
+  Textarea,
+  Progress,
+  Image,
+  Badge,
+  Anchor,
+} from '@mantine/core';
+import { notifications } from '@mantine/notifications';
+import { useNavigate } from 'react-router-dom';
 
-const UploadPage = () => {
+const UploadPage: React.FC = () => {
+  const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (token) {
-      setIsAuthenticated(true);
-    }
+    if (token) setIsAuthenticated(true);
   }, []);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFile(e.target.files[0]);
-      setTitle('');
-      setDescription('');
+  useEffect(() => {
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
     }
-  };
+    setPreviewUrl(null);
+  }, [file]);
 
   const handleUpload = async () => {
     if (!file) return;
 
     setIsUploading(true);
     setError(null);
+    setProgress(0);
 
     try {
       if (file.type.startsWith('video/')) {
@@ -39,16 +60,21 @@ const UploadPage = () => {
         formData.append('description', description);
 
         const res = await axios.post('/videos', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
+          headers: { 'Content-Type': 'multipart/form-data' },
+          onUploadProgress: (e) => {
+            if (!e.total) return;
+            const pct = Math.round((e.loaded / e.total) * 100);
+            setProgress(pct);
+          },
         });
-
-        console.log('Video upload response:', res.data);
 
         const videoUrl = res.data?.blobUri || res.data?.video?.url;
         if (videoUrl) {
           setUploadedUrl(videoUrl);
+          notifications.show({ color: 'green', title: 'Başarılı', message: 'Video yüklendi.' });
         } else {
           setError('Yükleme başarılı ancak Azure URL’si alınamadı.');
+          notifications.show({ color: 'yellow', title: 'Uyarı', message: 'URL alınamadı.' });
         }
       } else {
         const formData = new FormData();
@@ -60,77 +86,117 @@ const UploadPage = () => {
         formData.append('tenantId', tenantId || '');
 
         const res = await axios.post('/files/upload', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
+          headers: { 'Content-Type': 'multipart/form-data' },
+          onUploadProgress: (e) => {
+            if (!e.total) return;
+            const pct = Math.round((e.loaded / e.total) * 100);
+            setProgress(pct);
+          },
         });
-
-        console.log('Upload response:', res.data);
 
         const blobUrl = res.data?.blobUri || res.data?.file?.url;
         if (blobUrl) {
           setUploadedUrl(blobUrl);
+          notifications.show({ color: 'green', title: 'Başarılı', message: 'Dosya yüklendi.' });
         } else {
           setError('Yükleme başarılı ancak Azure URL’si alınamadı.');
+          notifications.show({ color: 'yellow', title: 'Uyarı', message: 'URL alınamadı.' });
         }
       }
     } catch (err) {
       console.error('Yükleme hatası:', err);
       setError('Upload failed.');
+      notifications.show({ color: 'red', title: 'Hata', message: 'Yükleme başarısız.' });
     } finally {
       setIsUploading(false);
+      setProgress((p) => (p === 0 ? 0 : 100));
     }
   };
 
-  return (
-    <div className="p-4 max-w-3xl mx-auto">
-      {!isAuthenticated ? (
-        <div className="mb-4 flex gap-4">
-          <button onClick={() => window.location.href = '/login'} className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300">Giriş Yap</button>
-          <button onClick={() => window.location.href = '/register'} className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300">Kayıt Ol</button>
-        </div>
-      ) : null}
+  const fileKind: 'image' | 'video' | 'other' = file
+    ? file.type.startsWith('image/')
+      ? 'image'
+      : file.type.startsWith('video/')
+      ? 'video'
+      : 'other'
+    : 'other';
 
-      <h1 className="text-xl font-bold mb-2">NodeFlow Dosya Yükleme</h1>
-      {isAuthenticated ? (
-        <div className="bg-white shadow rounded p-4 space-y-4">
-          <input type="file" onChange={handleFileChange} className="mb-2 w-full border border-gray-300 px-3 py-2 rounded" />
-          {file && file.type.startsWith('video/') && (
-            <div className="mb-2">
-              <input
-                type="text"
-                placeholder="Başlık"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                className="mb-2 w-full px-2 py-1 border rounded"
-              />
-              <textarea
-                placeholder="Açıklama"
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                className="w-full px-2 py-1 border rounded"
-              />
-            </div>
-          )}
-          <button
-            onClick={handleUpload}
-            className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
-            disabled={!file || isUploading}
-          >
-            {isUploading ? 'Yükleniyor...' : 'Yükle'}
-          </button>
-          {error && <p className="text-red-600 mt-2 text-sm">{error}</p>}
-          {uploadedUrl && (
-            <div className="mt-4">
-              <p>Yüklenen dosya:</p>
-              <a href={uploadedUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline mt-2 text-sm">
-                {uploadedUrl}
-              </a>
-            </div>
-          )}
-        </div>
-      ) : (
-        <p className="text-red-500 mt-2">Yükleme işlemi için lütfen giriş yapın.</p>
+  return (
+    <Box>
+      {!isAuthenticated && (
+        <Group mb="md">
+          <Button variant="subtle" onClick={() => navigate('/login')}>Giriş Yap</Button>
+          <Button onClick={() => navigate('/register')}>Kayıt Ol</Button>
+        </Group>
       )}
-    </div>
+
+      <Title order={2} mb="sm">Dosya Yükleme Servisi</Title>
+
+      {isAuthenticated ? (
+        <Card withBorder radius="lg" p="lg">
+          <Stack gap="md">
+            <FileInput
+              label="Dosya Seç"
+              placeholder="Bir dosya seçin"
+              value={file}
+              onChange={(f) => {
+                setFile(f);
+                setTitle('');
+                setDescription('');
+              }}
+            />
+
+            {fileKind === 'video' && (
+              <Group grow>
+                <TextInput label="Başlık" value={title} onChange={(e) => setTitle(e.currentTarget.value)} />
+                <Textarea label="Açıklama" value={description} onChange={(e) => setDescription(e.currentTarget.value)} minRows={2} />
+              </Group>
+            )}
+
+            {previewUrl && (
+              <Card withBorder padding="sm" radius="md">
+                <Group justify="space-between" mb="xs">
+                  <Group gap="xs">
+                    <Badge variant="light" color={fileKind === 'image' ? 'green' : fileKind === 'video' ? 'blue' : 'gray'}>
+                      {fileKind}
+                    </Badge>
+                    <Text size="sm" c="dimmed">{file?.name} {(file && (file.size / 1024 / 1024).toFixed(2))} MB</Text>
+                  </Group>
+                </Group>
+                {fileKind === 'image' && <Image src={previewUrl} alt={file?.name} radius="md" h={220} fit="contain" />}
+                {fileKind === 'video' && (
+                  <Box style={{ aspectRatio: '16/9' }}>
+                    <video src={previewUrl} controls style={{ width: '100%', height: '100%' }} />
+                  </Box>
+                )}
+              </Card>
+            )}
+
+            {isUploading && (
+              <Box>
+                <Text size="sm" mb={4}>Yükleniyor… {progress}%</Text>
+                <Progress value={progress} animated aria-label="Yükleme ilerlemesi" />
+              </Box>
+            )}
+
+            <Group>
+              <Button onClick={handleUpload} disabled={!file || isUploading}>
+                {isUploading ? 'Yükleniyor…' : 'Yükle'}
+              </Button>
+              {uploadedUrl && (
+                <Anchor href={uploadedUrl} target="_blank" rel="noopener noreferrer">
+                  Yüklenen dosyayı aç
+                </Anchor>
+              )}
+            </Group>
+
+            {error && <Text c="red" size="sm">{error}</Text>}
+          </Stack>
+        </Card>
+      ) : (
+        <Text c="red" mt="sm">Yükleme işlemi için lütfen giriş yapın.</Text>
+      )}
+    </Box>
   );
 };
 

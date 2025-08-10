@@ -1,6 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import axiosInstance from '../api/axiosInstance';
+import {
+  Box,
+  Card,
+  Title,
+  Text,
+  Group,
+  Badge,
+  Anchor,
+  Grid,
+  Loader,
+  Image,
+  Divider,
+  Button,
+  CopyButton,
+  ActionIcon,
+  Tooltip,
+  Modal,
+} from '@mantine/core';
+import { IconPhoto, IconVideo, IconFile, IconExternalLink, IconCopy, IconDownload, IconTrash } from '@tabler/icons-react';
 
 interface FileDetail {
   id: number;
@@ -14,6 +33,7 @@ interface FileDetail {
   video?: {
     id: number;
     title: string;
+    description?: string;
     duration: number;
     format: string;
     resolution: string;
@@ -22,17 +42,28 @@ interface FileDetail {
   thumbnailUrl?: string;
 }
 
+const fmtSize = (bytes: number) => {
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(2)} KB`;
+  const mb = kb / 1024;
+  return `${mb.toFixed(2)} MB`;
+};
+
 const FileDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [file, setFile] = useState<FileDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   useEffect(() => {
     const fetchFile = async () => {
       try {
         const response = await axiosInstance.get(`/files/${id}`);
         setFile(response.data);
+        setError(null);
       } catch (err) {
         setError('Dosya detayları alınamadı.');
       } finally {
@@ -43,54 +74,178 @@ const FileDetailPage: React.FC = () => {
     fetchFile();
   }, [id]);
 
-  if (loading) return <p className="p-4">Yükleniyor...</p>;
-  if (error) return <p className="p-4 text-red-600">{error}</p>;
-  if (!file) return <p className="p-4">Dosya bulunamadı.</p>;
+  if (loading) {
+    return (
+      <Group p="md">
+        <Loader size="sm" />
+        <Text>Yükleniyor…</Text>
+      </Group>
+    );
+  }
+
+  if (error) return <Text c="red" p="md">{error}</Text>;
+  if (!file) return <Text p="md">Dosya bulunamadı.</Text>;
+
+  const isImage = file.mimetype?.startsWith('image/');
+  const isVideo = file.mimetype?.startsWith('video/') || !!file.video;
 
   return (
-    <div className="p-4">
-      <h1 className="text-xl font-bold mb-2">Dosya Detayı</h1>
-      <ul className="space-y-1 mb-4">
-        <li><strong>Dosya Adı:</strong> {file.filename}</li>
-        <li><strong>Boyut:</strong> {(file.size / 1024).toFixed(2)} KB</li>
-        <li><strong>Mimetype:</strong> {file.mimetype}</li>
-        <li><strong>Yüklenme Tarihi:</strong> {new Date(file.uploadedAt).toLocaleString()}</li>
-        <li><strong>URL:</strong> <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{file.url}</a></li>
-        {file.user && (
-          <li><strong>Yükleyen:</strong> {file.user.name} ({file.user.email})</li>
-        )}
-        {file.tenant && (
-          <li><strong>Tenant:</strong> {file.tenant.name}</li>
-        )}
-      </ul>
+    <Box>
+      <Title order={2} mb="sm">Dosya Detayı</Title>
 
-      {file.video && (
-        <>
-          <h2 className="text-lg font-semibold mb-1">🎥 Video Detayları</h2>
-          <ul className="space-y-1">
-            <li>
-              <strong>Başlık:</strong>{' '}
-              <a
-                href={`/files/${file.video?.fileId}`}
-                className="text-blue-600 underline"
-              >
-                {file.video.title}
-              </a>
-            </li>
-            <li><strong>Süre:</strong> {file.video.duration.toFixed(2)} saniye</li>
-            <li><strong>Format:</strong> {file.video.format}</li>
-            <li><strong>Çözünürlük:</strong> {file.video.resolution}</li>
-          </ul>
-        </>
-      )}
+      <Grid gutter="md">
+        <Grid.Col span={{ base: 12, md: 7 }}>
+          <Card withBorder radius="lg" p="md">
+            <Group mb="sm" gap="xs">
+              {isImage ? <IconPhoto size={18} /> : isVideo ? <IconVideo size={18} /> : <IconFile size={18} />}
+              <Text fw={600}>{file.filename}</Text>
+              <Badge variant="light">{file.mimetype}</Badge>
+            </Group>
 
-      {'thumbnailUrl' in file && file.thumbnailUrl && (
-        <div className="mt-4">
-          <h2 className="text-lg font-semibold mb-2">🖼️ Thumbnail</h2>
-          <img src={file.thumbnailUrl} alt="Video Thumbnail" className="rounded w-64 border" />
-        </div>
-      )}
-    </div>
+            {isImage && (
+              <Image src={file.url} alt={file.filename} radius="md" h={360} fit="contain" />
+            )}
+
+            {isVideo && (
+              <Box style={{ aspectRatio: '16/9' }}>
+                <video src={file.url} controls style={{ width: '100%', height: '100%' }} />
+              </Box>
+            )}
+
+            {!isImage && !isVideo && (
+              <Group mt="sm">
+                <Button leftSection={<IconExternalLink size={16} />} onClick={() => window.open(file.url, '_blank')}>
+                  Dosyayı Aç
+                </Button>
+              </Group>
+            )}
+
+            {isVideo && file.video && (
+              <Box mt="sm">
+                {file.video.title && <Text fw={600}>{file.video.title}</Text>}
+                {file.video.description && <Text size="sm" c="dimmed">{file.video.description}</Text>}
+              </Box>
+            )}
+
+            <Group mt="sm" justify="flex-end">
+              <CopyButton value={file.url} timeout={1500}>
+                {({ copied, copy }) => (
+                  <Tooltip label={copied ? 'Kopyalandı' : 'Kopyala'} withArrow>
+                    <ActionIcon variant="subtle" onClick={copy} aria-label="Bağlantıyı kopyala">
+                      <IconCopy size={18} />
+                    </ActionIcon>
+                  </Tooltip>
+                )}
+              </CopyButton>
+              <Tooltip label="İndir / Aç" withArrow>
+                <ActionIcon variant="subtle" onClick={() => window.open(file.url, '_blank')} aria-label="İndir veya aç">
+                  <IconDownload size={18} />
+                </ActionIcon>
+              </Tooltip>
+              <Tooltip label="Sil" withArrow>
+                <ActionIcon color="red" variant="subtle" onClick={() => setDeleteOpen(true)} aria-label="Sil">
+                  <IconTrash size={18} />
+                </ActionIcon>
+              </Tooltip>
+            </Group>
+          </Card>
+        </Grid.Col>
+
+        <Grid.Col span={{ base: 12, md: 5 }}>
+          <Card withBorder radius="lg" p="md">
+            <Title order={4} mb="xs">Meta Bilgiler</Title>
+            <Divider mb="sm" />
+            <Group gap="xs" mb={6}>
+              <Text c="dimmed">Boyut:</Text>
+              <Text>{fmtSize(file.size)}</Text>
+            </Group>
+            <Group gap="xs" mb={6}>
+              <Text c="dimmed">Yüklenme:</Text>
+              <Text>{new Date(file.uploadedAt).toLocaleString()}</Text>
+            </Group>
+            <Group gap="xs" mb={6} wrap="nowrap">
+              <Text c="dimmed">URL:</Text>
+              <Anchor href={file.url} target="_blank" rel="noopener noreferrer" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+                {file.url}
+              </Anchor>
+              <CopyButton value={file.url} timeout={1500}>
+                {({ copied, copy }) => (
+                  <Tooltip label={copied ? 'Kopyalandı' : 'Kopyala'} withArrow>
+                    <ActionIcon variant="subtle" onClick={copy} aria-label="URL'i kopyala">
+                      <IconCopy size={16} />
+                    </ActionIcon>
+                  </Tooltip>
+                )}
+              </CopyButton>
+            </Group>
+            {file.user && (
+              <Group gap="xs" mb={6}>
+                <Text c="dimmed">Yükleyen:</Text>
+                <Text>{file.user.name} ({file.user.email})</Text>
+              </Group>
+            )}
+            {file.tenant && (
+              <Group gap="xs" mb={6}>
+                <Text c="dimmed">Tenant:</Text>
+                <Text>{file.tenant.name}</Text>
+              </Group>
+            )}
+          </Card>
+
+          {file.video && (
+            <Card withBorder radius="lg" p="md" mt="md">
+              <Title order={4} mb="xs">Video Detayları</Title>
+              <Divider mb="sm" />
+              <Group gap="xs" mb={6}>
+                <Text c="dimmed">Başlık:</Text>
+                <Anchor component={Link} to={`/files/${file.video.fileId}`}>{file.video.title}</Anchor>
+              </Group>
+              {file.video.description && (
+                <Group gap="xs" mb={6}>
+                  <Text c="dimmed">Açıklama:</Text>
+                  <Text>{file.video.description}</Text>
+                </Group>
+              )}
+              <Group gap="xs" mb={6}>
+                <Text c="dimmed">Süre:</Text>
+                <Text>{file.video.duration.toFixed(2)} saniye</Text>
+              </Group>
+              <Group gap="xs" mb={6}>
+                <Text c="dimmed">Format:</Text>
+                <Text>{file.video.format}</Text>
+              </Group>
+              <Group gap="xs" mb={6}>
+                <Text c="dimmed">Çözünürlük:</Text>
+                <Text>{file.video.resolution}</Text>
+              </Group>
+            </Card>
+          )}
+
+          {file.thumbnailUrl && (
+            <Card withBorder radius="lg" p="md" mt="md">
+              <Title order={4} mb="xs">Thumbnail</Title>
+              <Divider mb="sm" />
+              <Image src={file.thumbnailUrl} alt="Video Thumbnail" radius="md" w={260} fit="contain" />
+            </Card>
+          )}
+        </Grid.Col>
+      </Grid>
+      <Modal opened={deleteOpen} onClose={() => setDeleteOpen(false)} title="Silme onayı" centered>
+        <Text>"{file.filename}" dosyasını silmek istediğinize emin misiniz?</Text>
+        <Group justify="end" mt="md">
+          <Button variant="default" onClick={() => setDeleteOpen(false)}>Vazgeç</Button>
+          <Button color="red" onClick={async () => {
+            try {
+              await axiosInstance.delete(`/files/${file.id}`);
+              setDeleteOpen(false);
+              navigate('/files');
+            } catch (e) {
+              setDeleteOpen(false);
+            }
+          }}>Sil</Button>
+        </Group>
+      </Modal>
+    </Box>
   );
 };
 

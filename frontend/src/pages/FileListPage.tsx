@@ -1,6 +1,31 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../api/axiosInstance';
+import {
+  Box,
+  Title,
+  Table,
+  Group,
+  Text,
+  Badge,
+  ActionIcon,
+  Modal,
+  Button,
+  TextInput,
+  Loader,
+  Tooltip,
+  Anchor,
+} from '@mantine/core';
+import { notifications } from '@mantine/notifications';
+import {
+  IconDownload,
+  IconTrash,
+  IconCopy,
+  IconEdit,
+  IconPhoto,
+  IconVideo,
+  IconFile,
+} from '@tabler/icons-react';
 
 interface FileItem {
   id: number;
@@ -25,37 +50,45 @@ interface VideoItem {
   filename: string;
 }
 
-const FileListPage = () => {
+const fmtSize = (bytes: number) => {
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(2)} KB`;
+  const mb = kb / 1024;
+  return `${mb.toFixed(2)} MB`;
+};
+
+const FileListPage: React.FC = () => {
   const [files, setFiles] = useState<FileItem[]>([]);
+  const [videos, setVideos] = useState<VideoItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingFile, setEditingFile] = useState<FileItem | null>(null);
   const [newFilename, setNewFilename] = useState('');
-  const [videos, setVideos] = useState<VideoItem[]>([]);
+
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ kind: 'file' | 'video'; id: number; name: string } | null>(null);
 
   const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login');
-    }
+    if (!token) navigate('/login');
   }, [navigate]);
 
   const fetchFiles = async () => {
+    setLoading(true);
     try {
       const res = await axios.get('/files');
       const allFiles = res.data;
-
-      // Video dosyalarının ID'lerini filtrele
       const videoRes = await axios.get('/videos/my');
       const videoFileIds = videoRes.data.map((v: any) => v.fileId);
-
       const filteredFiles = allFiles.filter((f: any) => !videoFileIds.includes(f.id));
-
       setFiles(filteredFiles);
       setVideos(videoRes.data);
+      setError(null);
     } catch (err) {
       setError('Dosyalar alınamadı.');
     } finally {
@@ -63,170 +96,200 @@ const FileListPage = () => {
     }
   };
 
-  // fetchVideos fonksiyonu artık kullanılmıyor
+  useEffect(() => {
+    fetchFiles();
+  }, []);
 
-  const deleteFile = async (id: number) => {
-    if (!window.confirm('Bu dosyayı silmek istediğinize emin misiniz?')) return;
-    try {
-      await axios.delete(`/files/${id}`);
-      setFiles((prev) => prev.filter((file) => file.id !== id));
-    } catch (err) {
-      setError('Dosya silinemedi.');
-    }
-  };
-
-  const deleteVideo = async (id: number) => {
-    if (!window.confirm('Bu videoyu silmek istediğinize emin misiniz?')) return;
-    try {
-      await axios.delete(`/videos/${id}`);
-      setVideos((prev) => prev.filter((video) => video.id !== id));
-    } catch (err) {
-      setError('Video silinemedi.');
-    }
-  };
-
-  const handleEdit = (file: FileItem) => {
+  const openEdit = (file: FileItem) => {
     setEditingFile(file);
     setNewFilename(file.filename);
-    setIsModalOpen(true);
+    setIsEditOpen(true);
   };
 
   const handleUpdateFilename = async () => {
     if (!editingFile) return;
     try {
       await axios.put(`/files/${editingFile.id}`, { filename: newFilename });
-      setFiles((prev) =>
-        prev.map((file) => (file.id === editingFile.id ? { ...file, filename: newFilename } : file))
-      );
-      setIsModalOpen(false);
+      setFiles((prev) => prev.map((f) => (f.id === editingFile.id ? { ...f, filename: newFilename } : f)));
+      notifications.show({ color: 'green', title: 'Güncellendi', message: 'Dosya adı güncellendi.' });
+      setIsEditOpen(false);
     } catch (err) {
-      setError('Dosya adı güncellenemedi.');
+      notifications.show({ color: 'red', title: 'Hata', message: 'Dosya adı güncellenemedi.' });
     }
   };
 
-  useEffect(() => {
-    fetchFiles();
-  }, []);
+  const askDelete = (kind: 'file' | 'video', id: number, name: string) => {
+    setDeleteTarget({ kind, id, name });
+    setIsDeleteOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      if (deleteTarget.kind === 'file') {
+        await axios.delete(`/files/${deleteTarget.id}`);
+        setFiles((prev) => prev.filter((f) => f.id !== deleteTarget.id));
+      } else {
+        await axios.delete(`/videos/${deleteTarget.id}`);
+        setVideos((prev) => prev.filter((v) => v.id !== deleteTarget.id));
+      }
+      notifications.show({ color: 'green', title: 'Silindi', message: `${deleteTarget.name} kaldırıldı.` });
+    } catch (err) {
+      notifications.show({ color: 'red', title: 'Hata', message: 'Silme işlemi başarısız.' });
+    } finally {
+      setIsDeleteOpen(false);
+      setDeleteTarget(null);
+    }
+  };
+
+  const copyLink = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      notifications.show({ color: 'blue', title: 'Kopyalandı', message: 'Bağlantı panoya kopyalandı.' });
+    } catch {
+      notifications.show({ color: 'red', title: 'Hata', message: 'Kopyalanamadı.' });
+    }
+  };
+
+  const renderFileType = (mime: string) => {
+    if (mime.startsWith('image/')) return (
+      <Group gap={6} align="center"><IconPhoto size={16} /> <Text size="sm">Görsel</Text></Group>
+    );
+    if (mime.startsWith('video/')) return (
+      <Group gap={6} align="center"><IconVideo size={16} /> <Text size="sm">Video</Text></Group>
+    );
+    return (
+      <Group gap={6} align="center"><IconFile size={16} /> <Text size="sm">Dosya</Text></Group>
+    );
+  };
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Yüklenen Dosyalar</h1>
-      {loading && <p>Yükleniyor...</p>}
-      {error && <p className="text-red-600">{error}</p>}
-
-      <h2 className="text-xl font-semibold mt-6 mb-2">Dosyalar</h2>
-      <table className="w-full table-auto border border-gray-300 mb-8 text-sm">
-        <thead>
-          <tr className="bg-gray-200">
-            <th className="px-4 py-2 text-left">Dosya Adı</th>
-            <th className="px-4 py-2">Boyut</th>
-            <th className="px-4 py-2">Tür</th>
-            <th className="px-4 py-2">Yüklenme Tarihi</th>
-            <th className="px-4 py-2">İşlemler</th>
-          </tr>
-        </thead>
-        <tbody>
-          {files.map((file) => (
-            <tr key={file.id} className="border-t">
-              <td className="px-4 py-2">
-                <button onClick={() => navigate(`/files/${file.id}`)} className="text-blue-600 underline">
-                  {file.filename}
-                </button>
-              </td>
-              <td className="px-4 py-2 text-center">{(file.size / 1024).toFixed(2)} KB</td>
-              <td className="px-4 py-2 text-center">{file.mimetype}</td>
-              <td className="px-4 py-2 text-center">{new Date(file.uploadedAt).toLocaleString()}</td>
-              <td className="px-4 py-2 flex flex-col gap-1 items-center">
-                <button onClick={() => window.open(file.url, '_blank')} className="text-green-600 underline text-xs">
-                  İndir
-                </button>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(file.url);
-                    alert('Bağlantı panoya kopyalandı!');
-                  }}
-                  className="text-blue-600 underline text-xs"
-                >
-                  Kopyala
-                </button>
-                <button onClick={() => handleEdit(file)} className="text-yellow-600 underline text-xs">
-                  Düzenle
-                </button>
-                <button onClick={() => deleteFile(file.id)} className="text-red-600 underline text-xs">
-                  Sil
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <h2 className="text-xl font-semibold mt-6 mb-2">Videolar</h2>
-      <table className="w-full table-auto border border-gray-300 text-sm">
-        <thead>
-          <tr className="bg-gray-200">
-            <th className="px-4 py-2 text-left">Dosya Adı</th>
-            <th className="px-4 py-2">Süre</th>
-            <th className="px-4 py-2">Çözünürlük</th>
-            <th className="px-4 py-2">Format</th>
-            <th className="px-4 py-2">Boyut</th>
-            <th className="px-4 py-2">Yüklenme Tarihi</th>
-            <th className="px-4 py-2">İşlemler</th>
-          </tr>
-        </thead>
-        <tbody>
-          {videos.map((video) => (
-            <tr key={video.id} className="border-t">
-              <td className="px-4 py-2">
-                <button onClick={() => navigate(`/files/${video.fileId}`)} className="text-blue-600 underline">
-                  {video.filename}
-                </button>
-              </td>
-              <td className="px-4 py-2 text-center">{video.duration?.toFixed(2)} sn</td>
-              <td className="px-4 py-2 text-center">{video.resolution}</td>
-              <td className="px-4 py-2 text-center">{video.format}</td>
-              <td className="px-4 py-2 text-center">{(video.size / 1024).toFixed(2)} KB</td>
-              <td className="px-4 py-2 text-center">{new Date(video.uploadedAt).toLocaleString()}</td>
-              <td className="px-4 py-2 flex flex-col gap-1 items-center">
-                <button onClick={() => window.open(video.url, '_blank')} className="text-green-600 underline text-xs">
-                  İndir
-                </button>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(video.url);
-                    alert('Bağlantı panoya kopyalandı!');
-                  }}
-                  className="text-blue-600 underline text-xs"
-                >
-                  Kopyala
-                </button>
-                <button onClick={() => deleteVideo(video.id)} className="text-red-600 underline text-xs">
-                  Sil
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded shadow-md w-80">
-            <h2 className="text-lg font-semibold mb-4">Dosya Adını Güncelle</h2>
-            <input
-              type="text"
-              className="border px-2 py-1 w-full mb-3"
-              value={newFilename}
-              onChange={(e) => setNewFilename(e.target.value)}
-            />
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setIsModalOpen(false)} className="px-3 py-1 bg-gray-300 rounded">İptal</button>
-              <button onClick={handleUpdateFilename} className="px-3 py-1 bg-blue-500 text-white rounded">Kaydet</button>
-            </div>
-          </div>
-        </div>
+    <Box>
+      <Title order={2} mb="sm">Yüklenen Dosyalar</Title>
+      {loading && (
+        <Group my="md"><Loader size="sm" /> <Text>Yükleniyor…</Text></Group>
       )}
-    </div>
+      {error && <Text c="red" mb="sm">{error}</Text>}
+
+      {/* Dosyalar */}
+      <Title order={4} mt="lg" mb="xs">Dosyalar</Title>
+      <Table striped highlightOnHover withTableBorder withColumnBorders>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Dosya Adı</Table.Th>
+            <Table.Th>Boyut</Table.Th>
+            <Table.Th>Tür</Table.Th>
+            <Table.Th>Yüklenme Tarihi</Table.Th>
+            <Table.Th style={{ width: 200 }}>İşlemler</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {files.map((file) => (
+            <Table.Tr key={file.id}>
+              <Table.Td>
+                <Anchor onClick={() => navigate(`/files/${file.id}`)}>{file.filename}</Anchor>
+              </Table.Td>
+              <Table.Td>{fmtSize(file.size)}</Table.Td>
+              <Table.Td>{renderFileType(file.mimetype)}</Table.Td>
+              <Table.Td>{new Date(file.uploadedAt).toLocaleString()}</Table.Td>
+              <Table.Td>
+                <Group gap="xs" justify="flex-start">
+                  <Tooltip label="İndir / Aç">
+                    <ActionIcon onClick={() => window.open(file.url, '_blank')}>
+                      <IconDownload size={18} />
+                    </ActionIcon>
+                  </Tooltip>
+                  <Tooltip label="Bağlantıyı kopyala">
+                    <ActionIcon onClick={() => copyLink(file.url)}>
+                      <IconCopy size={18} />
+                    </ActionIcon>
+                  </Tooltip>
+                  <Tooltip label="Adı düzenle">
+                    <ActionIcon onClick={() => openEdit(file)}>
+                      <IconEdit size={18} />
+                    </ActionIcon>
+                  </Tooltip>
+                  <Tooltip label="Sil">
+                    <ActionIcon color="red" onClick={() => askDelete('file', file.id, file.filename)}>
+                      <IconTrash size={18} />
+                    </ActionIcon>
+                  </Tooltip>
+                </Group>
+              </Table.Td>
+            </Table.Tr>
+          ))}
+        </Table.Tbody>
+      </Table>
+
+      {/* Videolar */}
+      <Title order={4} mt="lg" mb="xs">Videolar</Title>
+      <Table striped highlightOnHover withTableBorder withColumnBorders>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Dosya Adı</Table.Th>
+            <Table.Th>Süre</Table.Th>
+            <Table.Th>Çözünürlük</Table.Th>
+            <Table.Th>Format</Table.Th>
+            <Table.Th>Boyut</Table.Th>
+            <Table.Th>Yüklenme Tarihi</Table.Th>
+            <Table.Th style={{ width: 160 }}>İşlemler</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {videos.map((video) => (
+            <Table.Tr key={video.id}>
+              <Table.Td>
+                <Anchor onClick={() => navigate(`/files/${video.fileId}`)}>{video.filename}</Anchor>
+              </Table.Td>
+              <Table.Td>{video.duration ? `${video.duration.toFixed(2)} sn` : '-'}</Table.Td>
+              <Table.Td>{video.resolution || '-'}</Table.Td>
+              <Table.Td>
+                <Badge variant="light">{video.format || '-'}</Badge>
+              </Table.Td>
+              <Table.Td>{fmtSize(video.size)}</Table.Td>
+              <Table.Td>{new Date(video.uploadedAt).toLocaleString()}</Table.Td>
+              <Table.Td>
+                <Group gap="xs" justify="flex-start">
+                  <Tooltip label="İndir / Aç">
+                    <ActionIcon onClick={() => window.open(video.url, '_blank')}>
+                      <IconDownload size={18} />
+                    </ActionIcon>
+                  </Tooltip>
+                  <Tooltip label="Bağlantıyı kopyala">
+                    <ActionIcon onClick={() => copyLink(video.url)}>
+                      <IconCopy size={18} />
+                    </ActionIcon>
+                  </Tooltip>
+                  <Tooltip label="Sil">
+                    <ActionIcon color="red" onClick={() => askDelete('video', video.id, video.filename)}>
+                      <IconTrash size={18} />
+                    </ActionIcon>
+                  </Tooltip>
+                </Group>
+              </Table.Td>
+            </Table.Tr>
+          ))}
+        </Table.Tbody>
+      </Table>
+
+      {/* Edit Modal */}
+      <Modal opened={isEditOpen} onClose={() => setIsEditOpen(false)} title="Dosya adını güncelle" centered>
+        <TextInput value={newFilename} onChange={(e) => setNewFilename(e.currentTarget.value)} label="Yeni ad" mb="md"/>
+        <Group justify="end">
+          <Button variant="default" onClick={() => setIsEditOpen(false)}>İptal</Button>
+          <Button onClick={handleUpdateFilename}>Kaydet</Button>
+        </Group>
+      </Modal>
+
+      {/* Delete Modal */}
+      <Modal opened={isDeleteOpen} onClose={() => setIsDeleteOpen(false)} title="Silme onayı" centered>
+        <Text>"{deleteTarget?.name}" öğesini silmek istediğinize emin misiniz?</Text>
+        <Group justify="end" mt="md">
+          <Button variant="default" onClick={() => setIsDeleteOpen(false)}>Vazgeç</Button>
+          <Button color="red" onClick={confirmDelete}>Sil</Button>
+        </Group>
+      </Modal>
+    </Box>
   );
 };
 
