@@ -11,9 +11,19 @@ const containerClient = blobServiceClient.getContainerClient(CONTAINER_NAME);
 export async function uploadToAzure(
   file: { originalname: string; buffer: Buffer; mimetype: string; size: number },
   uploaderIp: string,
-  tenantId: string
+  tenantId: string | number,
+  customPath?: string
 ): Promise<{ filename: string; url: string; size: number; mimetype: string; uploaderIp: string; uploadedAt: Date }> {
-  const blobName = `${tenantId}/${Date.now()}-${file.originalname}`;
+  const tenantPrefix = String(tenantId ?? '').trim();
+  let blobName: string;
+  if (customPath && customPath.length > 0) {
+    blobName = tenantPrefix ? `${tenantPrefix}/${customPath}` : customPath;
+  } else {
+    const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+    blobName = tenantPrefix
+      ? `${tenantPrefix}/${Date.now()}-${safeName}`
+      : `${Date.now()}-${safeName}`;
+  }
   const blockBlobClient = containerClient.getBlockBlobClient(blobName);
 
   await blockBlobClient.uploadData(file.buffer, {

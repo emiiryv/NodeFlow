@@ -116,33 +116,65 @@ export const getUserFiles = async (req: Request, res: Response) => {
 };
 
 export const getFileById = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const idNum = Number(id);
-  if (isNaN(idNum)) return res.status(400).json({ message: 'Invalid file ID' });
-  const tenantId: number | null = req.user?.tenantId ?? null;
-  if (!tenantId) return res.status(403).json({ message: 'Access denied.' });
-
   try {
-    const file = await prisma.file.findUnique({
-      where: { id: idNum },
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) return res.status(400).json({ message: 'Invalid file ID' });
+
+    const role = req.user?.role;
+    const tenantId = req.user?.tenantId ?? null;
+
+    const rec = await prisma.file.findUnique({
+      where: { id },
       include: {
         accessLogs: true,
         user: { select: { id: true, name: true, email: true } },
         tenant: { select: { id: true, name: true } },
-        videos: true
+        videos: {
+          orderBy: { id: 'desc' },
+          take: 1,
+        },
       },
     });
 
-    if (!file) return res.status(404).json({ message: 'File not found.' });
+    if (!rec) return res.status(404).json({ message: 'File not found.' });
 
-    if (file.tenantId !== tenantId) {
-      return res.status(403).json({ message: 'Access denied.' });
+    // Admin serbest; değilse aynı tenant olmalı
+    if (role !== 'admin') {
+      if (!tenantId || rec.tenantId !== tenantId) {
+        return res.status(403).json({ message: 'Access denied.' });
+      }
     }
 
-    res.json(file);
+    const v = rec.videos && rec.videos.length > 0 ? rec.videos[0] : null;
+
+    const payload: any = {
+      id: rec.id,
+      filename: rec.filename,
+      url: rec.url,
+      size: rec.size,
+      uploadedAt: rec.uploadedAt,
+      mimetype: rec.mimetype,
+      user: rec.user ? { id: rec.user.id, name: rec.user.name, email: rec.user.email } : undefined,
+      tenant: rec.tenant ? { id: rec.tenant.id, name: rec.tenant.name } : undefined,
+    };
+
+    if (v) {
+      payload.video = {
+        id: v.id,
+        title: v.title ?? '',
+        description: v.description ?? null,
+        duration: v.duration ?? 0,
+        format: v.format ?? '',
+        resolution: v.resolution ?? '',
+        fileId: v.fileId,
+        thumbnailUrl: (v as any).thumbnailUrl ?? undefined,
+      };
+    }
+
+    return res.json(payload);
   } catch (error) {
     console.error('Failed to fetch file:', error);
-    res.status(500).json({ message: 'Error retrieving file.' });
+    return res.status(500).json({ message: 'Error retrieving file.' });
   }
 };
 

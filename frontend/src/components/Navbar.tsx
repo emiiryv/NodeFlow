@@ -91,28 +91,36 @@ const Navbar: React.FC = () => {
         </>
       ) : (
         // Navbar.tsx - logged-out (isLoggedIn === false) kısmı
-<Group gap="sm">
-  <Button
-    variant="subtle"
-    size="md"
-    component={Link}
-    to="/login"
-    type="button"
-  >
-    Giriş Yap
-  </Button>
-  <Button
-    variant="filled"
-    color="grape"
-    size="md"
-    radius="md"
-    component={Link}
-    to="/register"
-    type="button"
-  >
-    Kayıt Ol
-  </Button>
-</Group>
+        <Group gap="xs" align="center" justify="flex-end" style={{ width: "100%" }}>
+          <ActionIcon
+            variant="subtle"
+            size="lg"
+            aria-label="Tema değiştir"
+            onClick={() => setColorScheme(computedColorScheme === 'dark' ? 'light' : 'dark')}
+          >
+            {computedColorScheme === 'dark' ? <IconSun size={20} /> : <IconMoon size={20} />}
+          </ActionIcon>
+          <Button
+            variant="subtle"
+            size="md"
+            component={Link}
+            to="/login"
+            type="button"
+          >
+            Giriş Yap
+          </Button>
+          <Button
+            variant="filled"
+            color="grape"
+            size="md"
+            radius="md"
+            component={Link}
+            to="/register"
+            type="button"
+          >
+            Kayıt Ol
+          </Button>
+        </Group>
       )}
     </Group>
   );

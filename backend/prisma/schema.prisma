@@ -55,17 +55,15 @@ model Video {
   format      String?
   resolution  String?
   uploadedAt  DateTime @default(now())
-
   fileId      Int
   file        File     @relation(fields: [fileId], references: [id])
-
   tenantId    Int?
   tenant      Tenant?  @relation(fields: [tenantId], references: [id])
-
   uploadedBy  Int?
   user        user?    @relation("UserVideos", fields: [uploadedBy], references: [id])
 
-  @@map("video")
+  // NEW:
+  thumbnailUrl String?
 }
 
 model AccessLog {

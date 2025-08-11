@@ -17,8 +17,21 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json());
 app.use(morgan('dev'));
+
+// Apply JSON parser only where needed; skip binary/no-body endpoints
+const jsonOnly = express.json();
+app.use((req, res, next) => {
+  // Skip JSON parsing for download/stream and thumbnail-regenerate endpoints
+  const p = req.path;
+  const isFileDownload = req.method === 'GET' && (/^\/api\/files\/\d+\/download(\b|\/)\/?/.test(req.originalUrl) || /^\/api\/files\/stream\//.test(req.originalUrl));
+  const isVideoThumbNoBody = req.method === 'POST' && /^\/api\/videos\/\d+\/thumbnail(\?.*)?$/.test(req.originalUrl);
+
+  if (isFileDownload || isVideoThumbNoBody) {
+    return next();
+  }
+  return jsonOnly(req, res, next);
+});
 
 // Routes
 app.use('/api/files', fileRoutes);

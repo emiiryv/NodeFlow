@@ -22,8 +22,8 @@ import { useNavigate } from 'react-router-dom';
 const UploadPage: React.FC = () => {
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
-  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
-  const [uploadedId, setUploadedId] = useState<string | null>(null);
+  //const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  //const [uploadedId, setUploadedId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -54,11 +54,14 @@ const UploadPage: React.FC = () => {
     setProgress(0);
 
     try {
-      if (file.type.startsWith('video/')) {
-        const formData = new FormData();
-        formData.append('video', file);
-        formData.append('title', title);
-        formData.append('description', description);
+      const isVideo = file.type.startsWith('video/');
+      const formData = new FormData();
+      formData.append('video', file);
+
+      if (isVideo) {
+        // Optional metadata for videos
+        if (title) formData.append('title', title);
+        if (description) formData.append('description', description);
 
         const res = await axios.post('/videos', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
@@ -69,25 +72,21 @@ const UploadPage: React.FC = () => {
           },
         });
 
-        const videoUrl = res.data?.blobUri || res.data?.video?.url;
-        const newFileId = res.data?.video?.id || null;
-        if (videoUrl) {
-          setUploadedUrl(videoUrl);
-          setUploadedId(newFileId);
+        const newFileId =
+          res.data?.video?.fileId ??
+          res.data?.file?.id ??
+          null;
+
+        if (newFileId) {
           notifications.show({ color: 'green', title: 'Başarılı', message: 'Video yüklendi.' });
+          // Hemen detay sayfasına geç
+          navigate(`/files/${newFileId}`);
         } else {
-          setError('Yükleme başarılı ancak Azure URL’si alınamadı.');
-          notifications.show({ color: 'yellow', title: 'Uyarı', message: 'URL alınamadı.' });
+          setError('Yükleme başarılı fakat dosya ID alınamadı.');
+          notifications.show({ color: 'yellow', title: 'Uyarı', message: 'Dosya ID alınamadı.' });
         }
       } else {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const token = localStorage.getItem('token');
-        const payload = token ? JSON.parse(atob(token.split('.')[1])) : null;
-        const tenantId = payload?.tenantId;
-        formData.append('tenantId', tenantId || '');
-
+        // Non-video files
         const res = await axios.post('/files/upload', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
           onUploadProgress: (e) => {
@@ -97,15 +96,17 @@ const UploadPage: React.FC = () => {
           },
         });
 
-        const blobUrl = res.data?.blobUri || res.data?.file?.url;
-        const newFileId = res.data?.file?.id || null;
-        if (blobUrl) {
-          setUploadedUrl(blobUrl);
-          setUploadedId(newFileId);
+        const newFileId =
+          res.data?.file?.id ??
+          res.data?.data?.file?.id ??
+          null;
+
+        if (newFileId) {
           notifications.show({ color: 'green', title: 'Başarılı', message: 'Dosya yüklendi.' });
+          navigate(`/files/${newFileId}`);
         } else {
-          setError('Yükleme başarılı ancak Azure URL’si alınamadı.');
-          notifications.show({ color: 'yellow', title: 'Uyarı', message: 'URL alınamadı.' });
+          setError('Yükleme başarılı fakat dosya ID alınamadı.');
+          notifications.show({ color: 'yellow', title: 'Uyarı', message: 'Dosya ID alınamadı.' });
         }
       }
     } catch (err) {
@@ -188,11 +189,6 @@ const UploadPage: React.FC = () => {
               <Button variant="filled" color="blue" onClick={handleUpload} disabled={!file || isUploading}>
                 {isUploading ? 'Yükleniyor…' : 'Yükle'}
               </Button>
-              {uploadedUrl && uploadedId && (
-                <Button variant="subtle" onClick={() => navigate(`/files/${uploadedId}`)}>
-                  Yüklenen dosyaya git
-                </Button>
-              )}
               {/* {uploadedUrl && (
                 <Anchor href={uploadedUrl} target="_blank" rel="noopener noreferrer">
                   Yüklenen dosyayı aç
