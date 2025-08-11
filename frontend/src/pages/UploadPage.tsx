@@ -185,7 +185,7 @@ const UploadPage: React.FC = () => {
             )}
 
             <Group>
-              <Button onClick={handleUpload} disabled={!file || isUploading}>
+              <Button variant="filled" color="blue" onClick={handleUpload} disabled={!file || isUploading}>
                 {isUploading ? 'Yükleniyor…' : 'Yükle'}
               </Button>
               {uploadedUrl && uploadedId && (

@@ -2,11 +2,14 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import axios from '../api/axiosInstance';
-import { Group, Button, Menu, ActionIcon } from '@mantine/core';
-import { IconMenu2 } from '@tabler/icons-react';
+import { Group, Button, Menu, ActionIcon, useMantineColorScheme, useComputedColorScheme } from '@mantine/core';
+import { IconMenu2, IconSun, IconMoon } from '@tabler/icons-react';
 
 const Navbar: React.FC = () => {
   const navigate = useNavigate();
+
+  const { setColorScheme } = useMantineColorScheme();
+  const computedColorScheme = useComputedColorScheme('light');
 
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(!!localStorage.getItem('token'));
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -64,17 +67,27 @@ const Navbar: React.FC = () => {
               </Menu>
             )}
           </Group>
-          <Menu position="bottom-end" shadow="md">
-            <Menu.Target>
-              <ActionIcon variant="subtle" size="lg" aria-label="Menü">
-                <IconMenu2 />
-              </ActionIcon>
-            </Menu.Target>
-            <Menu.Dropdown>
-              <Menu.Item component={Link} to="/profile">Profil</Menu.Item>
-              <Menu.Item onClick={handleLogout} color="red">Çıkış Yap</Menu.Item>
-            </Menu.Dropdown>
-          </Menu>
+          <Group gap="xs" align="center">
+            <ActionIcon
+              variant="subtle"
+              size="lg"
+              aria-label="Tema değiştir"
+              onClick={() => setColorScheme(computedColorScheme === 'dark' ? 'light' : 'dark')}
+            >
+              {computedColorScheme === 'dark' ? <IconSun size={20} /> : <IconMoon size={20} />}
+            </ActionIcon>
+            <Menu position="bottom-end" shadow="md">
+              <Menu.Target>
+                <ActionIcon variant="subtle" size="lg" aria-label="Menü">
+                  <IconMenu2 />
+                </ActionIcon>
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Item component={Link} to="/profile">Profil</Menu.Item>
+                <Menu.Item onClick={handleLogout} color="red">Çıkış Yap</Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+          </Group>
         </>
       ) : (
         // Navbar.tsx - logged-out (isLoggedIn === false) kısmı

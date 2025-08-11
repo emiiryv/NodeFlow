@@ -19,6 +19,8 @@ import {
   CopyButton,
   Anchor,
   Badge,
+  useMantineTheme,
+  useComputedColorScheme,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
@@ -81,6 +83,37 @@ const fmtSize = (bytes: number) => {
 
 const AdminFileManagementPage: React.FC = () => {
   const navigate = useNavigate();
+
+  const theme = useMantineTheme();
+  const colorScheme = useComputedColorScheme();
+
+  const borderColor = colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.gray[3];
+  const headerBg = colorScheme === 'dark' ? theme.colors.dark[7] : theme.colors.gray[0];
+  const headerColor = colorScheme === 'dark' ? theme.colors.gray[2] : theme.black;
+
+  const tableStyles = {
+    table: {
+      border: `1px solid ${borderColor}`,
+      borderCollapse: 'separate',
+      borderSpacing: 0,
+    },
+    th: {
+      backgroundColor: headerBg,
+      color: headerColor,
+      borderBottom: `1px solid ${borderColor}`,
+      borderRight: `1px solid ${borderColor}`,
+      '&:last-child': { borderRight: 'none' },
+    },
+    td: {
+      borderBottom: `1px solid ${borderColor}`,
+      borderRight: `1px solid ${borderColor}`,
+      '&:last-child': { borderRight: 'none' },
+    },
+  } as const;
+
+  // Build authenticated download/base URLs instead of direct blob URLs
+  const API_BASE = (axios.defaults.baseURL || '').replace(/\/$/, '');
+  const fileDownloadUrl = (id: number) => `${API_BASE}/files/${id}/download`;
 
   const [files, setFiles] = useState<FileItem[]>([]);
   const [videos, setVideos] = useState<VideoItem[]>([]);
@@ -291,11 +324,11 @@ const AdminFileManagementPage: React.FC = () => {
       <Table.Td>
         <Group gap="xs">
           <Tooltip label="Aç / İndir" withArrow>
-            <ActionIcon onClick={() => window.open(file.url, '_blank')} aria-label="Aç veya indir">
+            <ActionIcon onClick={() => window.open(fileDownloadUrl(file.id), '_blank')} aria-label="Aç veya indir">
               <IconDownload size={18} />
             </ActionIcon>
           </Tooltip>
-          <CopyButton value={file.url} timeout={1500}>
+          <CopyButton value={fileDownloadUrl(file.id)} timeout={1500}>
             {({ copied, copy }) => (
               <Tooltip label={copied ? 'Kopyalandı' : 'Bağlantıyı kopyala'} withArrow>
                 <ActionIcon onClick={copy} aria-label="Bağlantıyı kopyala">
@@ -332,11 +365,11 @@ const AdminFileManagementPage: React.FC = () => {
       <Table.Td>
         <Group gap="xs">
           <Tooltip label="Aç / İndir" withArrow>
-            <ActionIcon onClick={() => window.open(video.url, '_blank')} aria-label="Aç veya indir">
+            <ActionIcon onClick={() => window.open(fileDownloadUrl(video.fileId), '_blank')} aria-label="Aç veya indir">
               <IconDownload size={18} />
             </ActionIcon>
           </Tooltip>
-          <CopyButton value={video.url} timeout={1500}>
+          <CopyButton value={fileDownloadUrl(video.fileId)} timeout={1500}>
             {({ copied, copy }) => (
               <Tooltip label={copied ? 'Kopyalandı' : 'Bağlantıyı kopyala'} withArrow>
                 <ActionIcon onClick={copy} aria-label="Bağlantıyı kopyala">
@@ -426,53 +459,57 @@ const AdminFileManagementPage: React.FC = () => {
       )}
 
       {!loading && activeTab === 'files' && (
-        <Table striped highlightOnHover withTableBorder withColumnBorders>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th w={36}>
-                <Checkbox
-                  checked={selectedIds.length > 0 && selectedIds.length === filteredFiles.length}
-                  indeterminate={selectedIds.length > 0 && selectedIds.length < filteredFiles.length}
-                  onChange={(e) => toggleAll(e.currentTarget.checked)}
-                />
-              </Table.Th>
-              <Table.Th>Dosya Adı</Table.Th>
-              <Table.Th>Boyut</Table.Th>
-              <Table.Th>Tür</Table.Th>
-              <Table.Th>Yükleme Tarihi</Table.Th>
-              <Table.Th>Kullanıcı</Table.Th>
-              {userRole === 'admin' && <Table.Th>Tenant</Table.Th>}
-              <Table.Th style={{ width: 160 }}>İşlemler</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>{rowsFiles}</Table.Tbody>
-        </Table>
+        <Table.ScrollContainer minWidth={1000}>
+          <Table striped highlightOnHover withTableBorder stickyHeader styles={tableStyles}>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th w={36}>
+                  <Checkbox
+                    checked={selectedIds.length > 0 && selectedIds.length === filteredFiles.length}
+                    indeterminate={selectedIds.length > 0 && selectedIds.length < filteredFiles.length}
+                    onChange={(e) => toggleAll(e.currentTarget.checked)}
+                  />
+                </Table.Th>
+                <Table.Th>Dosya Adı</Table.Th>
+                <Table.Th>Boyut</Table.Th>
+                <Table.Th>Tür</Table.Th>
+                <Table.Th>Yükleme Tarihi</Table.Th>
+                <Table.Th>Kullanıcı</Table.Th>
+                {userRole === 'admin' && <Table.Th>Tenant</Table.Th>}
+                <Table.Th style={{ width: 160 }}>İşlemler</Table.Th>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>{rowsFiles}</Table.Tbody>
+          </Table>
+        </Table.ScrollContainer>
       )}
 
       {!loading && activeTab === 'videos' && (
-        <Table striped highlightOnHover withTableBorder withColumnBorders>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th w={36}>
-                <Checkbox
-                  checked={selectedIds.length > 0 && selectedIds.length === filteredVideos.length}
-                  indeterminate={selectedIds.length > 0 && selectedIds.length < filteredVideos.length}
-                  onChange={(e) => toggleAll(e.currentTarget.checked)}
-                />
-              </Table.Th>
-              <Table.Th>Başlık / Dosya</Table.Th>
-              <Table.Th>Süre</Table.Th>
-              <Table.Th>Çözünürlük</Table.Th>
-              <Table.Th>Format</Table.Th>
-              <Table.Th>Boyut</Table.Th>
-              <Table.Th>Yükleme Tarihi</Table.Th>
-              <Table.Th>Kullanıcı</Table.Th>
-              {userRole === 'admin' && <Table.Th>Tenant</Table.Th>}
-              <Table.Th style={{ width: 160 }}>İşlemler</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>{rowsVideos}</Table.Tbody>
-        </Table>
+        <Table.ScrollContainer minWidth={1000}>
+          <Table striped highlightOnHover withTableBorder stickyHeader styles={tableStyles}>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th w={36}>
+                  <Checkbox
+                    checked={selectedIds.length > 0 && selectedIds.length === filteredVideos.length}
+                    indeterminate={selectedIds.length > 0 && selectedIds.length < filteredVideos.length}
+                    onChange={(e) => toggleAll(e.currentTarget.checked)}
+                  />
+                </Table.Th>
+                <Table.Th>Başlık / Dosya</Table.Th>
+                <Table.Th>Süre</Table.Th>
+                <Table.Th>Çözünürlük</Table.Th>
+                <Table.Th>Format</Table.Th>
+                <Table.Th>Boyut</Table.Th>
+                <Table.Th>Yükleme Tarihi</Table.Th>
+                <Table.Th>Kullanıcı</Table.Th>
+                {userRole === 'admin' && <Table.Th>Tenant</Table.Th>}
+                <Table.Th style={{ width: 160 }}>İşlemler</Table.Th>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>{rowsVideos}</Table.Tbody>
+          </Table>
+        </Table.ScrollContainer>
       )}
 
       {/* Confirm bulk delete */}
