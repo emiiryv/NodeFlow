@@ -19,6 +19,11 @@ enum Role {
   admin
 }
 
+enum AccessType {
+  VIEW
+  DOWNLOAD
+}
+
 model File {
   id         Int      @id @default(autoincrement())
   filename   String
@@ -31,6 +36,9 @@ model File {
   // NEW (nullable başlayalım, sonra doldururuz)
   container  String?   // azure container adı
   blobName   String?   // container içindeki yol/dosya adı (path)
+
+  views     Int      @default(0)
+  downloads Int      @default(0)
 
   userId   Int
   user     user    @relation(fields: [userId], references: [id])
@@ -46,7 +54,7 @@ model File {
 
 model Video {
   id          Int      @id @default(autoincrement())
-  title       String
+  title       String?
   description String?
   filename    String
   url         String
@@ -67,13 +75,17 @@ model Video {
 }
 
 model AccessLog {
-  id        Int      @id @default(autoincrement())
-  file      File     @relation(fields: [fileId], references: [id])
-  fileId    Int
-  accessTime DateTime @default(now())
-  ipAddress String?
-  userAgent String?
+  id         Int         @id @default(autoincrement())
+  file       File        @relation(fields: [fileId], references: [id])
+  fileId     Int
+  type       AccessType
+  userId     Int?
+  user       user?       @relation("UserAccessLogs", fields: [userId], references: [id]) // <- İSİMLİ İLİŞKİ
+  accessedAt DateTime    @default(now())
+  ipAddress  String?
+  userAgent  String?
 
+  @@index([fileId, type, accessedAt])
   @@map("access_log")
 }
 
@@ -91,6 +103,9 @@ model user {
 
   files     File[]
   videos    Video[]  @relation("UserVideos")
+
+  // NEW: AccessLog inverse relation
+  accessLogs AccessLog[] @relation("UserAccessLogs")
 }
 
 model Tenant {

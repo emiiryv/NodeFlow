@@ -7,13 +7,15 @@ import {
   FileButton, Slider,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconPhoto, IconVideo, IconFile, IconExternalLink, IconCopy, IconDownload, IconTrash } from '@tabler/icons-react';
+import { IconPhoto, IconVideo, IconFile, IconExternalLink, IconCopy, IconDownload, IconTrash, IconEye } from '@tabler/icons-react';
 
 interface FileDetail {
   id: number;
   filename: string;
   url: string;
   size: number;
+  views?: number;
+  downloads?: number;
   uploadedAt: string;
   mimetype: string;
   user?: { id: number; name: string; email: string };
@@ -241,6 +243,14 @@ const FileDetailPage: React.FC = () => {
               <Text fw={600}>{file.filename}</Text>
               <Badge variant="light">{file.mimetype}</Badge>
             </Group>
+            <Group gap="xs" mb="xs">
+              <Badge variant="outline" leftSection={<IconEye size={14} />}>
+                {(file.views ?? 0).toLocaleString()} görüntülenme
+              </Badge>
+              <Badge variant="outline" leftSection={<IconDownload size={14} />}>
+                {(file.downloads ?? 0).toLocaleString()} indirme
+              </Badge>
+            </Group>
 
             {isImage && (
               <Image
@@ -307,7 +317,20 @@ const FileDetailPage: React.FC = () => {
                 )}
               </CopyButton>
               <Tooltip label="İndir / Aç" withArrow>
-                <ActionIcon variant="subtle" onClick={() => window.open(downloadUrl, '_blank')} aria-label="İndir veya aç">
+                <ActionIcon
+                  variant="subtle"
+                  onClick={() => {
+                    window.open(downloadUrl, '_blank');
+                    // indirme sayacı backend'de artıyor; biraz sonra yeniden çekelim
+                    setTimeout(() => {
+                      // only refetch if still on this page
+                      if (typeof window !== 'undefined') {
+                        refetch();
+                      }
+                    }, 1200);
+                  }}
+                  aria-label="İndir veya aç"
+                >
                   <IconDownload size={18} />
                 </ActionIcon>
               </Tooltip>
@@ -331,6 +354,14 @@ const FileDetailPage: React.FC = () => {
             <Group gap="xs" mb={6}>
               <Text c="dimmed">Yüklenme:</Text>
               <Text>{new Date(file.uploadedAt).toLocaleString()}</Text>
+            </Group>
+            <Group gap="xs" mb={6}>
+              <Text c="dimmed">Görüntülenme:</Text>
+              <Text>{(file.views ?? 0).toLocaleString()}</Text>
+            </Group>
+            <Group gap="xs" mb={6}>
+              <Text c="dimmed">İndirme:</Text>
+              <Text>{(file.downloads ?? 0).toLocaleString()}</Text>
             </Group>
             <Group gap="xs" mb={6} wrap="nowrap">
               <Text c="dimmed">URL:</Text>

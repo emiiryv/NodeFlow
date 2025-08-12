@@ -4,6 +4,7 @@ import prisma from '../models/db';
 
 import { BlobServiceClient } from '@azure/storage-blob';
 import { parseAzureBlobUrl } from '../services/azureService';
+import { AccessType } from '@prisma/client';
 
 export const streamFileById = async (req: Request, res: Response) => {
   try {
@@ -78,6 +79,42 @@ export const streamFileById = async (req: Request, res: Response) => {
     const disposition = (req.query.disposition === 'inline') ? 'inline' : 'attachment';
     res.setHeader('Content-Disposition', `${disposition}; filename="${encodeURIComponent(file.filename)}"`);
 
+    // Download statistics & access logging (enum-based)
+    try {
+      if (disposition === 'attachment') {
+        await prisma.$transaction([
+          prisma.file.update({
+            where: { id: file.id },
+            data: { downloads: { increment: 1 } },
+          }),
+          prisma.accessLog.create({
+            data: {
+              fileId: file.id,
+              userId: req.user?.userId ?? null,
+              ipAddress: req.ip || '',
+              userAgent: (req.headers['user-agent'] as string) || '',
+              type: AccessType.DOWNLOAD,
+              accessedAt: new Date(),
+            },
+          }),
+        ]);
+      } else {
+        // inline görüntüleme – DOWNLOAD artırma yok, sadece VIEW logu (opsiyonel)
+        prisma.accessLog.create({
+          data: {
+            fileId: file.id,
+            userId: req.user?.userId ?? null,
+            ipAddress: req.ip || '',
+            userAgent: (req.headers['user-agent'] as string) || '',
+            type: AccessType.VIEW,
+            accessedAt: new Date(),
+          },
+        }).catch(() => {});
+      }
+    } catch {
+      // logging hataları akışı engellemesin
+    }
+
     const dl = await blobClient.download(offset, count);
     if (!rangeHeader && total !== undefined) {
       res.setHeader('Content-Length', String(total));
@@ -117,6 +154,9 @@ export const getUserFiles = async (req: Request, res: Response) => {
 
 export const getFileById = async (req: Request, res: Response) => {
   try {
+    // Cache’i kapat (304 olmasın)
+    res.setHeader('Cache-Control', 'no-store');
+
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ message: 'Invalid file ID' });
 
@@ -129,23 +169,41 @@ export const getFileById = async (req: Request, res: Response) => {
         accessLogs: true,
         user: { select: { id: true, name: true, email: true } },
         tenant: { select: { id: true, name: true } },
-        videos: {
-          orderBy: { id: 'desc' },
-          take: 1,
-        },
+        videos: { orderBy: { id: 'desc' }, take: 1 },
       },
     });
 
     if (!rec) return res.status(404).json({ message: 'File not found.' });
 
-    // Admin serbest; değilse aynı tenant olmalı
     if (role !== 'admin') {
       if (!tenantId || rec.tenantId !== tenantId) {
         return res.status(403).json({ message: 'Access denied.' });
       }
     }
 
-    const v = rec.videos && rec.videos.length > 0 ? rec.videos[0] : null;
+    // Görüntülenme sayacı + access log (hata yutsa da stream bloklanmasın)
+    try {
+      await prisma.$transaction([
+        prisma.file.update({
+          where: { id },
+          data: { views: { increment: 1 } },
+        }),
+        prisma.accessLog.create({
+          data: {
+            fileId: id,
+            userId: req.user?.userId ?? null,
+            ipAddress: req.ip || '',
+            userAgent: (req.headers['user-agent'] as string) || '',
+            type: AccessType.VIEW,
+            accessedAt: new Date(),
+          },
+        }),
+      ]);
+    } catch {
+      // ignore analytics errors
+    }
+
+    const v = rec.videos?.[0] ?? null;
 
     const payload: any = {
       id: rec.id,
@@ -154,6 +212,9 @@ export const getFileById = async (req: Request, res: Response) => {
       size: rec.size,
       uploadedAt: rec.uploadedAt,
       mimetype: rec.mimetype,
+      // 🔹 Sayaçları EKLE
+      views: rec.views ?? 0,
+      downloads: rec.downloads ?? 0,
       user: rec.user ? { id: rec.user.id, name: rec.user.name, email: rec.user.email } : undefined,
       tenant: rec.tenant ? { id: rec.tenant.id, name: rec.tenant.name } : undefined,
     };
