@@ -76,6 +76,8 @@ const FileListPage: React.FC = () => {
   const navigate = useNavigate();
 
   const API = (axios.defaults.baseURL || '').replace(/\/$/, '');
+  const APP_BASE = (window.location.origin || '').replace(/\/$/, '');
+  const fileDetailUrl = (id: number) => `${APP_BASE}/files/${id}`;
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -227,6 +229,7 @@ const FileListPage: React.FC = () => {
           <Table.Tbody>
             {files.map((file) => {
               const fileBase = `${API}/files/${file.id}/download`;
+              const detailUrl = fileDetailUrl(file.id);
               return (
               <Table.Tr key={file.id}>
                 <Table.Td>
@@ -242,8 +245,8 @@ const FileListPage: React.FC = () => {
                         <IconDownload size={18} />
                       </ActionIcon>
                     </Tooltip>
-                    <Tooltip label="Bağlantıyı kopyala">
-                      <ActionIcon onClick={() => copyLink(fileBase)}>
+                    <Tooltip label="Detay linkini kopyala">
+                      <ActionIcon onClick={() => copyLink(detailUrl)}>
                         <IconCopy size={18} />
                       </ActionIcon>
                     </Tooltip>
@@ -290,6 +293,7 @@ const FileListPage: React.FC = () => {
           <Table.Tbody>
             {videos.map((video) => {
               const videoBase = `${API}/files/${video.fileId}/download`;
+              const detailUrl = fileDetailUrl(video.fileId);
               return (
               <Table.Tr key={video.id}>
                 <Table.Td>
@@ -309,8 +313,8 @@ const FileListPage: React.FC = () => {
                         <IconDownload size={18} />
                       </ActionIcon>
                     </Tooltip>
-                    <Tooltip label="Bağlantıyı kopyala">
-                      <ActionIcon onClick={() => copyLink(videoBase)}>
+                    <Tooltip label="Detay linkini kopyala">
+                      <ActionIcon onClick={() => copyLink(detailUrl)}>
                         <IconCopy size={18} />
                       </ActionIcon>
                     </Tooltip>

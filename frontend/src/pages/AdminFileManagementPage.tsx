@@ -113,7 +113,9 @@ const AdminFileManagementPage: React.FC = () => {
 
   // Build authenticated download/base URLs instead of direct blob URLs
   const API_BASE = (axios.defaults.baseURL || '').replace(/\/$/, '');
+  const APP_BASE = (window.location.origin || '').replace(/\/$/, '');
   const fileDownloadUrl = (id: number) => `${API_BASE}/files/${id}/download`;
+  const fileDetailUrl = (id: number) => `${APP_BASE}/files/${id}`;
 
   const [files, setFiles] = useState<FileItem[]>([]);
   const [videos, setVideos] = useState<VideoItem[]>([]);
@@ -228,7 +230,7 @@ const AdminFileManagementPage: React.FC = () => {
         return {
           id: f.id,
           filename: f.filename,
-          url: f.url,
+          url: fileDetailUrl(f.id),
           size: f.size,
           uploadedAt: f.uploadedAt,
           user: f.user?.name || '',
@@ -242,7 +244,7 @@ const AdminFileManagementPage: React.FC = () => {
           id: v.id,
           fileId: v.fileId,
           filename: v.filename,
-          url: v.url,
+          url: fileDetailUrl(v.fileId),
           size: v.size,
           uploadedAt: v.uploadedAt,
           duration: v.duration || '',
@@ -328,7 +330,7 @@ const AdminFileManagementPage: React.FC = () => {
               <IconDownload size={18} />
             </ActionIcon>
           </Tooltip>
-          <CopyButton value={fileDownloadUrl(file.id)} timeout={1500}>
+          <CopyButton value={fileDetailUrl(file.id)} timeout={1500}>
             {({ copied, copy }) => (
               <Tooltip label={copied ? 'Kopyalandı' : 'Bağlantıyı kopyala'} withArrow>
                 <ActionIcon onClick={copy} aria-label="Bağlantıyı kopyala">
@@ -369,7 +371,7 @@ const AdminFileManagementPage: React.FC = () => {
               <IconDownload size={18} />
             </ActionIcon>
           </Tooltip>
-          <CopyButton value={fileDownloadUrl(video.fileId)} timeout={1500}>
+          <CopyButton value={fileDetailUrl(video.fileId)} timeout={1500}>
             {({ copied, copy }) => (
               <Tooltip label={copied ? 'Kopyalandı' : 'Bağlantıyı kopyala'} withArrow>
                 <ActionIcon onClick={copy} aria-label="Bağlantıyı kopyala">

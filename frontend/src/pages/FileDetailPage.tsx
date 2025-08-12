@@ -90,6 +90,7 @@ const FileDetailPage: React.FC = () => {
   const base = fid ? `${API}/files/${fid}/download` : '';
   const streamUrl = fid ? `${base}?disposition=inline` : '';
   const downloadUrl = base;
+  const detailUrl = fid ? `${window.location.origin}/files/${fid}` : '';
 
   const safeStr = (v?: string | null) => !!v && v !== 'null' && v !== 'undefined' && v.trim().length > 0;
   const numericVideoId = file?.video && Number.isFinite(Number(file.video.id)) ? Number(file.video.id) : null;
@@ -296,7 +297,7 @@ const FileDetailPage: React.FC = () => {
                   <IconPhoto size={18} />
                 </ActionIcon>
               </Tooltip>
-              <CopyButton value={downloadUrl} timeout={1500}>
+              <CopyButton value={detailUrl} timeout={1500}>
                 {({ copied, copy }) => (
                   <Tooltip label={copied ? 'Kopyalandı' : 'Kopyala'} withArrow>
                     <ActionIcon variant="subtle" onClick={copy} aria-label="Bağlantıyı kopyala">
@@ -334,14 +335,14 @@ const FileDetailPage: React.FC = () => {
             <Group gap="xs" mb={6} wrap="nowrap">
               <Text c="dimmed">URL:</Text>
               <Anchor
-                href={downloadUrl}
+                href={detailUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}
               >
-                {downloadUrl}
+                {detailUrl}
               </Anchor>
-              <CopyButton value={downloadUrl} timeout={1500}>
+              <CopyButton value={detailUrl} timeout={1500}>
                 {({ copied, copy }) => (
                   <Tooltip label={copied ? 'Kopyalandı' : 'Kopyala'} withArrow>
                     <ActionIcon variant="subtle" onClick={copy} aria-label="URL'i kopyala">

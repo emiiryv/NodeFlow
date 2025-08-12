@@ -244,7 +244,10 @@ export const getTenantFiles = async (req: Request, res: Response) => {
 
     const files = await prisma.file.findMany({
       where: { tenantId: tenantId ?? undefined },
-      include: { accessLogs: true },
+      include: {
+        accessLogs: true,
+        user: { select: { id: true, name: true, email: true } },
+      },
       orderBy: { uploadedAt: 'desc' },
     });
 

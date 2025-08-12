@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import axiosInstance from '../api/axiosInstance';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -14,9 +14,10 @@ import {
   Anchor,
   useMantineTheme,
   useComputedColorScheme,
+  TextInput,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconDownload, IconCopy } from '@tabler/icons-react';
+import { IconDownload, IconCopy, IconSearch } from '@tabler/icons-react';
 
 interface FileItem {
   id: number;
@@ -24,6 +25,8 @@ interface FileItem {
   size: number;
   uploadedAt: string;
   url: string; // legacy (blob) — artık kullanmıyoruz
+  mimetype?: string;
+  user?: { id: number; name: string; email: string };
 }
 
 const fmtSize = (bytes: number) => {
@@ -39,6 +42,7 @@ const TenantFilesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [tenantName, setTenantName] = useState('');
+  const [query, setQuery] = useState('');
   const navigate = useNavigate();
 
   const theme = useMantineTheme();
@@ -71,6 +75,7 @@ const TenantFilesPage: React.FC = () => {
   // Kendi indir/önizleme endpointimiz
   const API_BASE = (axiosInstance.defaults.baseURL || '').replace(/\/$/, '');
   const downloadUrl = (id: number) => `${API_BASE}/files/${id}/download`;
+  const detailUrl = (id: number) => `${window.location.origin}/files/${id}`;
 
   useEffect(() => {
     const fetchTenantFiles = async () => {
@@ -98,6 +103,18 @@ const TenantFilesPage: React.FC = () => {
     fetchTenantData();
   }, []);
 
+  const filteredFiles = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return files;
+    return files.filter((f) => {
+      const byName = f.filename.toLowerCase().includes(q);
+      const byUser =
+        (f.user?.name || '').toLowerCase().includes(q) ||
+        (f.user?.email || '').toLowerCase().includes(q);
+      return byName || byUser;
+    });
+  }, [files, query]);
+
   const copyLink = async (url: string) => {
     try {
       await navigator.clipboard.writeText(url);
@@ -111,6 +128,16 @@ const TenantFilesPage: React.FC = () => {
     <Box>
       <Title order={2} mb="sm">Tenant Dosyaları</Title>
       {tenantName && <Text fw={500} mb="md">{tenantName}</Text>}
+
+      <Group mb="md" align="center">
+        <TextInput
+          placeholder="Ara: dosya adı, kullanıcı"
+          leftSection={<IconSearch size={16} />}
+          value={query}
+          onChange={(e) => setQuery(e.currentTarget.value)}
+          w={280}
+        />
+      </Group>
 
       {loading && (
         <Group my="md"><Loader size="sm" /> <Text>Yükleniyor…</Text></Group>
@@ -129,11 +156,12 @@ const TenantFilesPage: React.FC = () => {
                 <Table.Th>Dosya Adı</Table.Th>
                 <Table.Th>Boyut</Table.Th>
                 <Table.Th>Yüklenme Tarihi</Table.Th>
-                <Table.Th style={{ width: 160 }}>İşlemler</Table.Th>
+                <Table.Th>Kullanıcı</Table.Th>
+                <Table.Th style={{ width: 200 }}>İşlemler</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {files.map((file) => {
+              {filteredFiles.map((file) => {
                 const dUrl = downloadUrl(file.id);
                 return (
                   <Table.Tr key={file.id}>
@@ -142,6 +170,7 @@ const TenantFilesPage: React.FC = () => {
                     </Table.Td>
                     <Table.Td>{fmtSize(file.size)}</Table.Td>
                     <Table.Td>{new Date(file.uploadedAt).toLocaleString()}</Table.Td>
+                    <Table.Td>{file.user?.name ? `${file.user.name} (${file.user.email})` : '—'}</Table.Td>
                     <Table.Td>
                       <Group gap="xs">
                         <Tooltip label="Aç / İndir" withArrow>
@@ -149,8 +178,8 @@ const TenantFilesPage: React.FC = () => {
                             <IconDownload size={18} />
                           </ActionIcon>
                         </Tooltip>
-                        <Tooltip label="Bağlantıyı kopyala" withArrow>
-                          <ActionIcon onClick={() => copyLink(dUrl)} aria-label="Bağlantıyı kopyala">
+                        <Tooltip label="Detay bağlantısını kopyala" withArrow>
+                          <ActionIcon onClick={() => copyLink(detailUrl(file.id))} aria-label="Bağlantıyı kopyala">
                             <IconCopy size={18} />
                           </ActionIcon>
                         </Tooltip>
