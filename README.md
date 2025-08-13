@@ -13,6 +13,7 @@ Ayrıca hem admin hem de tenant yöneticileri için özel bir panel arayüzü su
 - `multer` üzerinden dosya yükleme (REST API)
 - Metadata kaydı (boyut, format, kullanıcı vs.)
 - .env ile güvenli yapılandırma
+- Video thumbnail üretme ve oluşturma
 
 ### 🎥 Video Streaming
 - Akıllı video başlangıcı (range header destekli)
@@ -28,8 +29,12 @@ Ayrıca hem admin hem de tenant yöneticileri için özel bir panel arayüzü su
 - Dosya açılma/tıklanma istatistikleri
 - İndirme bilgileri: tarih, IP, kullanıcı agent
 - Admin için erişim geçmişi
+- `File` modelinde `viewCount` ve `downloadCount` alanları
+- `AccessLog` kayıtları timestamp, IP, User Agent, kullanıcı ve erişim tipi (VIEW/DOWNLOAD) bilgilerini tutar
+- Inline streaming loglanır ancak download sayısını etkilemez
 
 ### 🎦 2. Aşama (yakında)
+- 1. aşama tamamlandı: thumbnail desteği, istatistik takibi, geliştirilmiş tenant yönetimi ve iyileştirilmiş dosya paylaşım URL’leri
 - Gerçek zamanlı video streaming (WebRTC)
 - Ekran paylaşımı ve odalı video görüşme desteği
 
@@ -98,12 +103,15 @@ Ardından `.env` dosyasındaki `DATABASE_URL` değeri bu veritabanına uygun şe
 ### 🧬 Role Enum:
 - `user`, `tenantadmin`, `admin` rolleri desteklenmektedir.
 
+### 🧬 AccessType Enum:
+- `VIEW` ve `DOWNLOAD` türleri desteklenmektedir.
+
 ### 🧩 Tablolar:
 - `user`: kullanıcı bilgileri (username, email, password, role)
 - `tenant`: tenant adları ve ilişkili kullanıcı/dosyalar
-- `file`: dosya bilgileri ve ilişkili kullanıcı/tenant
+- `file`: dosya bilgileri ve ilişkili kullanıcı/tenant, ayrıca `views` ve `downloads` sayaçları içerir
 - `video`: video metadata (format, süre, çözünürlük)
-- `access_log`: erişim zamanı, IP ve kullanıcı ajanı
+- `access_log`: erişim tipi, erişim zamanı (accessedAt), IP adresi, kullanıcı ajanı (userAgent) ve ilişkili kullanıcı bilgisi
 
 ### 🔧 Gerekli Komutlar:
 ```bash
@@ -122,7 +130,9 @@ NodeFlow/
 │   ├── controllers/
 │   ├── services/
 │   ├── routes/
-│   └── models/
+│   ├── models/
+│   ├── middlewares/
+│   └── utils/
 ├── frontend/
 │   ├── src/
 │   │   ├── pages/
@@ -139,5 +149,6 @@ NodeFlow/
 - `.env` dosyaları Git’e dahil edilmemelidir.
 - Azure key, database şifreleri gibi hassas bilgiler `.env` ile saklanmalıdır.
 - Production ortamı için `https`, rate-limit, auth kontrolü önerilir.
-
----
+- Production ortamında, veri iletimini korumak için geçerli SSL/TLS sertifikaları ile HTTPS kullanılması önemlidir.
+- Çerezlerde `Secure`, `HttpOnly` ve `SameSite` özniteliklerinin ayarlanması, çerez hırsızlığı ve CSRF saldırılarına karşı koruma sağlar.
+- JWT tokenlarının localStorage yerine güvenli çerezlerde saklanması, güvenlik seviyesini artırır.
