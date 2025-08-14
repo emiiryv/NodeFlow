@@ -1,3 +1,6 @@
+import csrf from 'csurf';
+import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
@@ -7,15 +10,29 @@ import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import adminRoutes from './routes/adminRoutes';
 import videoRoutes from './routes/videoRoutes';
+import securityRoutes from './routes/securityRoutes';
+import { corsOptions } from './middlewares/corsConfig';
 
 dotenv.config();
 
 const app = express();
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3001',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+app.use(cors(corsOptions));
+
+app.use(cookieParser());
+const csrfProtection = csrf({ cookie: true });
+
+//CDN olmadığı için CSP’de yalnızca self ve data: kaynakları açık bırakıldı 
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      imgSrc: ["'self'", 'data:'],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"]
+    }
+  },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  frameguard: { action: 'deny' }
 }));
 app.use(morgan('dev'));
 
@@ -39,5 +56,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/videos', videoRoutes);
+app.use('/api', securityRoutes);
 
 export default app;

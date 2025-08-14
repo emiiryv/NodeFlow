@@ -1,4 +1,6 @@
 import React from 'react';
+import { useEffect } from 'react';
+import { getCsrfToken } from './api/csrf';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import {
   MantineProvider,
@@ -23,6 +25,11 @@ const colorSchemeManager = localStorageColorSchemeManager({
 });
 
 function App() {
+  useEffect(() => {
+    getCsrfToken().then((token) => {
+      localStorage.setItem('csrfToken', token);
+    });
+  }, []);
   return (
     <MantineProvider
       theme={theme}

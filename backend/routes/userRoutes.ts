@@ -8,6 +8,7 @@ import {
   changeUserPassword
 } from '../controllers/userController';
 import { authenticate } from '../middlewares/authMiddleware';
+import csrfProtection from '../middlewares/csrfProtection';
 
 const router = express.Router();
 
@@ -15,10 +16,10 @@ const router = express.Router();
 router.get('/me', authenticate, getUserProfile);
 
 // Update user profile
-router.put('/me', authenticate, updateUserProfile);
+router.put('/me', authenticate, csrfProtection, updateUserProfile);
 
 // Delete user account
-router.delete('/me', authenticate, deleteUser);
+router.delete('/me', authenticate, csrfProtection, deleteUser);
 
 // Get user statistics
 
@@ -30,6 +31,6 @@ router.get('/stats', authenticate, (req, res, next) => {
 }, getUserStats);
 
 // Change user password
-router.put('/change-password', authenticate, changeUserPassword);
+router.put('/change-password', authenticate, csrfProtection, changeUserPassword);
 
 export default router;

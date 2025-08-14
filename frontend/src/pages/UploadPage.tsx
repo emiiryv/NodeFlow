@@ -56,7 +56,7 @@ const UploadPage: React.FC = () => {
     try {
       const isVideo = file.type.startsWith('video/');
       const formData = new FormData();
-      formData.append('video', file);
+      formData.append('file', file);
 
       if (isVideo) {
         // Optional metadata for videos

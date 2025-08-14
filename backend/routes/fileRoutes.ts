@@ -13,6 +13,7 @@ import {
 import { upload } from '../middlewares/uploadMiddleware';
 import { verifyToken } from '../middlewares/authMiddleware';
 import { isAdmin, isTenantAdmin } from '../middlewares/roleMiddleware';
+import csrfProtection from '../middlewares/csrfProtection';
 
 const router = express.Router();
 
@@ -33,14 +34,14 @@ const setAttachmentDisposition = (req: Request, _res: Response, next: NextFuncti
   next();
 };
 
-router.post('/upload', verifyToken, upload.single('file'), handleUpload);
+router.post('/upload', verifyToken, csrfProtection, upload.single('file'), handleUpload);
 
 router.get('/', verifyToken, getUserFiles);
 router.get('/tenant', verifyToken, getTenantFiles);
 router.get('/stream/:id', verifyToken, setInlineDisposition, streamFileById);
 router.get('/:id/download', verifyToken, setAttachmentDisposition, streamFileById);
 router.get('/:id', verifyToken, getFileById);
-router.put('/:id', verifyToken, updateFileName);
-router.delete('/:id', verifyToken, deleteFileById);
+router.put('/:id', verifyToken, csrfProtection, updateFileName);
+router.delete('/:id', verifyToken, csrfProtection, deleteFileById);
 
 export default router;

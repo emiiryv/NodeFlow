@@ -15,6 +15,12 @@ instance.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  const csrfToken = localStorage.getItem('csrfToken');
+  if (csrfToken) {
+    config.headers['X-CSRF-Token'] = csrfToken;
+  }
+
   return config;
 });
 
