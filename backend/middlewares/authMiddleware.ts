@@ -65,3 +65,10 @@ export const verifyToken = async (
 };
 
 export const authenticate = verifyToken;
+
+export const secureQueueDashboard = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).send('Access denied. Admins only.');
+  }
+  next();
+};

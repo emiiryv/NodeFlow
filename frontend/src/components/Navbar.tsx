@@ -63,6 +63,9 @@ const Navbar: React.FC = () => {
                 <Menu.Dropdown>
                   <Menu.Item component={Link} to="/admin/user-management">Kullanıcı Yönetimi</Menu.Item>
                   <Menu.Item component={Link} to="/admin/file-management">Dosya Yönetimi</Menu.Item>
+                  {userRole === 'admin' && (
+                    <Menu.Item component="a" href="https://localhost:3000/admin/queues" target="_blank" rel="noopener noreferrer">İşlem Panosu</Menu.Item>
+                  )}
                 </Menu.Dropdown>
               </Menu>
             )}

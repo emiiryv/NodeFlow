@@ -13,6 +13,9 @@ import videoRoutes from './routes/videoRoutes';
 import securityRoutes from './routes/securityRoutes';
 import { corsOptions } from './middlewares/corsConfig';
 
+import queueDashboard from './utils/queueDashboard';
+import { authenticate, secureQueueDashboard } from './middlewares/authMiddleware';
+
 dotenv.config();
 
 const app = express();
@@ -57,5 +60,10 @@ app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/videos', videoRoutes);
 app.use('/api', securityRoutes);
+
+// adminRoutes sadece admin paneline ait API işlemlerini kapsar (örneğin: kullanıcı silme, dosya yönetimi gibi JSON API'ler).
+// bull-board ise bir UI servisidir, kendi ExpressAdapter’ına sahip middleware’dir.
+// Bu yüzden adminRoutes'a değil doğrudan app.ts içine, diğer route’larla eşdeğer bir middleware olarak eklenmesi gerekir.
+app.use('/admin/queues', authenticate, secureQueueDashboard, queueDashboard.getRouter());
 
 export default app;
