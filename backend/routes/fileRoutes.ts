@@ -14,6 +14,7 @@ import { upload } from '../middlewares/uploadMiddleware';
 import { verifyToken } from '../middlewares/authMiddleware';
 import { isAdmin, isTenantAdmin } from '../middlewares/roleMiddleware';
 import csrfProtection from '../middlewares/csrfProtection';
+import { generalLimiter } from '../middlewares/rateLimitMiddleware';
 
 const router = express.Router();
 
@@ -38,8 +39,8 @@ router.post('/upload', verifyToken, csrfProtection, upload.single('file'), handl
 
 router.get('/', verifyToken, getUserFiles);
 router.get('/tenant', verifyToken, getTenantFiles);
-router.get('/stream/:id', verifyToken, setInlineDisposition, streamFileById);
-router.get('/:id/download', verifyToken, setAttachmentDisposition, streamFileById);
+router.get('/stream/:id', verifyToken, generalLimiter, setInlineDisposition, streamFileById);
+router.get('/:id/download', verifyToken, generalLimiter, setAttachmentDisposition, streamFileById);
 router.get('/:id', verifyToken, getFileById);
 router.put('/:id', verifyToken, csrfProtection, updateFileName);
 router.delete('/:id', verifyToken, csrfProtection, deleteFileById);
