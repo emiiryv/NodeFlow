@@ -12,6 +12,7 @@ import { uploadToAzure, parseAzureBlobUrl } from '../services/azureService';
 import { extractMetadata, optimizeVideo } from '../services/metaService';
 import { compressVideoBuffer } from '../utils/videoProcessor';
 import { generateThumbnail } from '../services/thumbnailService';
+import { thumbnailQueue, metadataQueue } from '../jobs/queue';
 import { BlobServiceClient } from '@azure/storage-blob';
 import type { Prisma } from '@prisma/client';
 
@@ -163,58 +164,38 @@ const uploadVideo = async (req: Request, res: Response) => {
       },
     });
 
-    // Metadata
-    const metadata = await extractMetadata(file.buffer);
-
-    // Save video
+    // video tablosuna kayıt
     const newVideo = await prisma.video.create({
       data: {
-        fileId: newFile.id,
-        title: safeTitle, // ensure title is always provided
-        description: (description && description.trim().length > 0) ? description.trim() : null,
-        duration: metadata?.duration ?? null,
-        format: metadata?.format ?? null,
-        resolution: metadata?.resolution ?? null,
-        filename: newFile.filename,
-        url: newFile.url,
-        size: azureUploadResult.size,
+        title: safeTitle,
+        description: description ?? null,
         uploadedBy: userId,
         tenantId,
+        fileId: newFile.id,
+        filename: azureUploadResult.filename,
+        url: azureUploadResult.url,
+        size: azureUploadResult.size,
       },
     });
 
-    // Generate thumbnail (background)
-    (async () => {
-      try {
-        const uploadsDir = path.join(__dirname, '../uploads');
-        if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-        const tmpVideoPath = path.join(uploadsDir, `video_${newVideo.id}.bin`);
-        fs.writeFileSync(tmpVideoPath, file.buffer);
+    // Enqueue metadata extraction job
+    await metadataQueue.add('extract-metadata', {
+      videoId: newVideo.id,
+      fileBuffer: file.buffer,
+      filename: file.originalname,
+    });
 
-        const atSecond = (() => {
-          const d = metadata?.duration ?? 0;
-          if (!d || !Number.isFinite(d) || d < 2) return 5;
-          return Math.max(1, Math.floor(d * 0.25));
-        })();
-
-        const thumbUrl = await generateThumbnail(tmpVideoPath, newVideo.id, tenantId, atSecond);
-
-        await prisma.video.update({
-          where: { id: newVideo.id },
-          data: { thumbnailUrl: thumbUrl },
-        });
-
-        try { fs.existsSync(tmpVideoPath) && fs.unlinkSync(tmpVideoPath); } catch {}
-      } catch (e) {
-        console.error('Thumbnail generation error:', e);
-      }
-    })();
+    // Enqueue thumbnail generation job
+    await thumbnailQueue.add('generate-thumbnail', {
+      videoBuffer: file.buffer,
+      videoId: newVideo.id,
+      tenantId,
+    });
 
     res.status(201).json({
-      message: 'Video uploaded and metadata extracted successfully.',
+      message: 'Video uploaded. Metadata extraction and thumbnail generation have been queued.',
       file: newFile,
-      video: newVideo,
-      metadata: metadata || 'Metadata could not be extracted',
+      // video and metadata will be available after background jobs complete
     });
   } catch (error) {
     console.error('Video upload error:', error);

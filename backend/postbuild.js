@@ -11,13 +11,17 @@ function fixImports(dir) {
       fixImports(fullPath);
     } else if (file.endsWith('.js')) {
       let content = fs.readFileSync(fullPath, 'utf8');
-      content = content.replace(/(from\s+['"])(\.{1,2}\/[^'"]+)(['"])/g, (match, p1, p2, p3) => {
-        // Eğer zaten .js ile bitmiyorsa ekle
-        if (!p2.endsWith('.js')) {
-          return p1 + p2 + '.js' + p3;
-        }
-        return match;
+
+      // import/export ifadelerinde .js uzantısı ekle (relative importlara)
+      content = content.replace(/(import\s.+?from\s+['"])(\.{1,2}\/[^'"]+)(['"])/g, (match, p1, p2, p3) => {
+        return p2.endsWith('.js') ? match : p1 + p2 + '.js' + p3;
       });
+
+      // sadece 'import "./modulename"' gibi uzantısız importlar
+      content = content.replace(/(import\s+['"])(\.{1,2}\/[^'"]+)(['"])/g, (match, p1, p2, p3) => {
+        return p2.endsWith('.js') ? match : p1 + p2 + '.js' + p3;
+      });
+
       fs.writeFileSync(fullPath, content);
     }
   }

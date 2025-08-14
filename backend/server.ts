@@ -31,3 +31,6 @@ scheduleBlobCleanup();
 https.createServer({ key, cert }, app).listen(PORT, () => {
   console.log(`NodeFlow backend running at https://localhost:${PORT}`);
 });
+
+import './jobs/thumbnailWorker';
+import './jobs/metadataWorker';
