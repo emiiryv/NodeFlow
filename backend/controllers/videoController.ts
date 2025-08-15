@@ -1,6 +1,7 @@
 // backend/controllers/videoController.ts
 
 import path from 'path';
+import logger from '../utils/logger';
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,7 +41,7 @@ const getVideos = async (req: Request, res: Response) => {
 
     res.json(videos);
   } catch (error) {
-    console.error('Videos fetch error:', error);
+    logger.error(error, 'Videos fetch error');
     res.status(500).json({ message: 'Internal server error' });
   }
 };
@@ -69,7 +70,7 @@ const getVideoById = async (req: Request, res: Response) => {
 
     res.json(video);
   } catch (error) {
-    console.error('Video fetch error:', error);
+    logger.error(error, 'Video fetch error');
     res.status(500).json({ message: 'Internal server error' });
   }
 };
@@ -91,7 +92,7 @@ const getMyVideos = async (req: Request, res: Response) => {
 
     res.status(200).json(videos);
   } catch (error) {
-    console.error('User videos fetch error:', error);
+    logger.error(error, 'User videos fetch error');
     res.status(500).json({ message: 'Error fetching videos' });
   }
 };
@@ -198,7 +199,7 @@ const uploadVideo = async (req: Request, res: Response) => {
       // video and metadata will be available after background jobs complete
     });
   } catch (error) {
-    console.error('Video upload error:', error);
+    logger.error(error, 'Video upload error');
     res.status(500).json({ message: 'Internal server error' });
   }
 };
@@ -232,7 +233,7 @@ const deleteVideo = async (req: Request, res: Response) => {
 
     res.status(204).send();
   } catch (error) {
-    console.error('Video delete error:', error);
+    logger.error(error, 'Video delete error');
     res.status(500).json({ message: 'Internal server error' });
   }
 };
@@ -319,7 +320,7 @@ const generateThumbnailForVideo = async (req: Request, res: Response) => {
 
     return res.json({ message: 'Thumbnail regenerated', thumbnailUrl: thumbUrl });
   } catch (err) {
-    console.error('generateThumbnailForVideo error:', err);
+    logger.error(err, 'generateThumbnailForVideo error');
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
@@ -373,7 +374,7 @@ const uploadThumbnailForVideo = async (req: Request, res: Response) => {
 
     return res.json({ message: 'Thumbnail updated', thumbnailUrl: uploaded.url });
   } catch (err) {
-    console.error('uploadThumbnailForVideo error:', err);
+    logger.error(err, 'uploadThumbnailForVideo error');
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
@@ -443,7 +444,7 @@ const streamVideoThumbnail = async (req: Request, res: Response) => {
     const dl = await blobClient.download();
     dl.readableStreamBody!.pipe(res);
   } catch (e) {
-    console.error('streamVideoThumbnail error:', e);
+    logger.error(e, 'streamVideoThumbnail error');
     res.status(500).send('Internal server error');
   }
 };

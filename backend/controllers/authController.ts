@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import prisma from '../models/db';
 import { Request, Response } from 'express';
+import logger from '../utils/logger';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_key';
 
@@ -42,7 +43,7 @@ export const register = async (req: Request, res: Response) => {
 
     res.status(201).json({ message: 'Kullanıcı başarıyla oluşturuldu.', user: { id: user.id, email: user.email } });
   } catch (error) {
-    console.error('Kayıt hatası:', error);
+    logger.error({ err: error }, 'register error');
     res.status(500).json({ message: 'Kayıt sırasında bir hata oluştu.' });
   }
 };
@@ -76,7 +77,7 @@ export const login = async (req: Request, res: Response) => {
 
     res.status(200).json({ message: 'Giriş başarılı.', token });
   } catch (error) {
-    console.error('Giriş hatası:', error);
+    logger.error({ err: error }, 'login error');
     res.status(500).json({ message: 'Giriş sırasında bir hata oluştu.' });
   }
 };

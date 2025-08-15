@@ -5,6 +5,7 @@ import prisma from '../models/db';
 import { BlobServiceClient } from '@azure/storage-blob';
 import { parseAzureBlobUrl } from '../services/azureService';
 import { AccessType } from '@prisma/client';
+import logger from '../utils/logger';
 
 export const streamFileById = async (req: Request, res: Response) => {
   try {
@@ -125,7 +126,7 @@ export const streamFileById = async (req: Request, res: Response) => {
 
     dl.readableStreamBody!.pipe(res);
   } catch (e) {
-    console.error('streamFileById error:', e);
+    logger.error(e instanceof Error ? e.message : String(e));
     res.status(500).send('Internal server error');
   }
 };
@@ -147,7 +148,7 @@ export const getUserFiles = async (req: Request, res: Response) => {
     });
     res.json(files);
   } catch (error) {
-    console.error('Failed to fetch user files:', error);
+    logger.error(error instanceof Error ? error.message : String(error));
     res.status(500).json({ message: 'Error retrieving files.' });
   }
 };
@@ -234,7 +235,7 @@ export const getFileById = async (req: Request, res: Response) => {
 
     return res.json(payload);
   } catch (error) {
-    console.error('Failed to fetch file:', error);
+    logger.error(error instanceof Error ? error.message : String(error));
     return res.status(500).json({ message: 'Error retrieving file.' });
   }
 };
@@ -264,7 +265,7 @@ export const deleteFileById = async (req: Request, res: Response) => {
 
     res.json({ message: 'File deleted successfully.' });
   } catch (error) {
-    console.error('Failed to delete file:', error);
+    logger.error(error instanceof Error ? error.message : String(error));
     res.status(500).json({ message: 'Error deleting file.' });
   }
 };
@@ -292,7 +293,7 @@ export const updateFileName = async (req: Request, res: Response) => {
     });
     res.json(updated);
   } catch (error) {
-    console.error('Failed to update file name:', error);
+    logger.error(error instanceof Error ? error.message : String(error));
     res.status(500).json({ message: 'Error updating file name.' });
   }
 };
@@ -314,7 +315,7 @@ export const getTenantFiles = async (req: Request, res: Response) => {
 
     res.json(files);
   } catch (error) {
-    console.error('Tenant dosyaları getirme hatası:', error);
+    logger.error(error instanceof Error ? error.message : String(error));
     res.status(500).json({ message: 'Tenant dosyaları alınamadı.' });
   }
 };

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../models/db';
 import bcrypt from 'bcrypt';
+import logger from '../utils/logger';
 
 // Get profile of current user
 export const getUserProfile = async (req: Request, res: Response) => {
@@ -29,7 +30,7 @@ export const getUserProfile = async (req: Request, res: Response) => {
 
     res.status(200).json({ user });
   } catch (error) {
-    console.error('Profil alınırken hata:', error);
+    logger.error(error, 'Profil alınırken hata');
     res.status(500).json({ message: 'Profil alınırken hata oluştu.' });
   }
 };
@@ -54,7 +55,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
 
     res.status(200).json({ users });
   } catch (error) {
-    console.error('Kullanıcı listesi alınırken hata:', error);
+    logger.error(error, 'Kullanıcı listesi alınırken hata');
     res.status(500).json({ message: 'Kullanıcı listesi alınırken hata oluştu.' });
   }
 };
@@ -71,7 +72,7 @@ export const deleteUser = async (req: Request, res: Response) => {
 
     res.status(200).json({ message: 'Kullanıcı hesabı silindi.' });
   } catch (error) {
-    console.error('Kullanıcı silinirken hata:', error);
+    logger.error(error, 'Kullanıcı silinirken hata');
     res.status(500).json({ message: 'Kullanıcı silinirken bir hata oluştu.' });
   }
 };
@@ -91,7 +92,7 @@ export const updateUserProfile = async (req: Request, res: Response) => {
 
     res.status(200).json({ message: 'Kullanıcı profili güncellendi.', user: updated });
   } catch (error) {
-    console.error('Kullanıcı güncellenirken hata:', error);
+    logger.error(error, 'Kullanıcı güncellenirken hata');
     res.status(500).json({ message: 'Kullanıcı güncellenirken bir hata oluştu.' });
   }
 };
@@ -128,7 +129,7 @@ export const changeUserPassword = async (req: Request, res: Response) => {
 
     res.status(200).json({ message: 'Şifre başarıyla güncellendi.' });
   } catch (error) {
-    console.error('Şifre değiştirme hatası:', error);
+    logger.error(error, 'Şifre değiştirme hatası');
     res.status(500).json({ message: 'Şifre değiştirilirken hata oluştu.' });
   }
 };
@@ -164,7 +165,7 @@ export const getUserStats = async (req: Request, res: Response) => {
       lastUpload,
     });
   } catch (error) {
-    console.error('İstatistik alınırken hata:', error);
+    logger.error(error, 'İstatistik alınırken hata');
     res.status(500).json({ message: 'İstatistik alınırken bir hata oluştu.' });
   }
 };

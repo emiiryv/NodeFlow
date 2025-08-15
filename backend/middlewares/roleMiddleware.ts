@@ -6,6 +6,7 @@
  *   - isTenantAdmin
  */
 import { Request, Response, NextFunction } from 'express';
+import logger from '../utils/logger';
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -20,11 +21,20 @@ export const allowRoles = (...allowedRoles: string[]) => {
     const user = req.user;
 
     if (!user || !allowedRoles.includes(user.role)) {
+      logger.warn({
+        msg: 'Role access denied',
+        user,
+        requiredRoles: allowedRoles
+      });
       return res.status(403).json({ message: 'Yetkisiz erişim: rol reddedildi.' });
     }
 
     // Sadece admin dışındaki roller için tenantId zorunlu
     if (user.role !== 'admin' && !user.tenantId) {
+      logger.warn({
+        msg: 'Tenant ID missing for non-admin role',
+        user
+      });
       return res.status(403).json({ message: 'Yetkisiz erişim: tenant tanımlı değil.' });
     }
 

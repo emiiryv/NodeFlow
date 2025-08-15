@@ -1,5 +1,6 @@
 import { Worker, Job } from 'bullmq';
 import { extractMetadata } from '../services/metaService';
+import logger from '../utils/logger';
 
 const connection = {
   url: process.env.REDIS_URL || 'redis://localhost:6379',
@@ -16,7 +17,7 @@ const worker = new Worker(
 
     try {
       const metadata = await extractMetadata(Buffer.from(fileBuffer));
-      console.log(`Extracted metadata:`, metadata);
+      logger.info({ metadata }, 'Extracted metadata');
 
       const prisma = (await import('../models/db.js')).default;
 
@@ -29,7 +30,7 @@ const worker = new Worker(
         },
       });
     } catch (error) {
-      console.error('Error extracting metadata:', error);
+      logger.error({ error }, 'Error extracting metadata');
       throw error;
     }
   },
@@ -37,9 +38,9 @@ const worker = new Worker(
 );
 
 worker.on('completed', (job) => {
-  console.log(`Metadata job ${job.id} completed.`);
+  logger.info(`Metadata job ${job.id} completed.`);
 });
 
 worker.on('failed', (job, err) => {
-  console.error(`Metadata job ${job?.id} failed:`, err);
+  logger.error({ err, jobId: job?.id }, 'Metadata job failed');
 });

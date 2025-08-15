@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../models/db';
+import logger from '../utils/logger';
 
 // Admin veya Tenant Admin: Tüm kullanıcıları getir
 export const getAllUsers = async (req: Request, res: Response) => {
@@ -37,9 +38,10 @@ export const getAllUsers = async (req: Request, res: Response) => {
       }
     });
 
+    logger.info(`Admin ${userId} fetched ${users.length} users`);
     res.json({ users });
   } catch (error) {
-    console.error('getAllUsers error:', error);
+    logger.error({ err: error }, 'getAllUsers error');
     res.status(500).json({ message: 'Kullanıcılar alınamadı.' });
   }
 };
@@ -80,9 +82,10 @@ export const getAdminFiles = async (req: Request, res: Response) => {
       orderBy: { uploadedAt: 'desc' }
     });
 
+    logger.info(`Admin ${userId} fetched ${files.length} files`);
     res.json(files);
   } catch (error) {
-    console.error('getAdminFiles error:', error);
+    logger.error({ err: error }, 'getAdminFiles error');
     res.status(500).json({ message: 'Dosyalar alınamadı.' });
   }
 };
@@ -100,9 +103,10 @@ export const deleteUserById = async (req: Request, res: Response) => {
 
   try {
     await prisma.user.delete({ where: { id: numericId } });
+    logger.warn(`Admin ${userId} deleted user ${numericId}`);
     res.json({ message: 'Kullanıcı silindi.' });
   } catch (error) {
-    console.error('deleteUserById error:', error);
+    logger.error({ err: error }, 'deleteUserById error');
     res.status(500).json({ message: 'Kullanıcı silinemedi.' });
   }
 };
@@ -147,9 +151,10 @@ export const updateUserById = async (req: Request, res: Response) => {
       data: { name, email, username },
     });
 
+    logger.info(`User ${userId} updated user ${numericId}`);
     res.json(updatedUser);
   } catch (error) {
-    console.error('updateUserById error:', error);
+    logger.error({ err: error }, 'updateUserById error');
     res.status(500).json({ message: 'Kullanıcı güncellenemedi.' });
   }
 };
@@ -188,10 +193,11 @@ export const deleteFileById = async (req: Request, res: Response) => {
     }
 
     await prisma.file.delete({ where: { id: numericId } });
+    logger.warn(`User ${userId} deleted file ${numericId}`);
 
     res.json({ message: 'Dosya silindi.' });
   } catch (error) {
-    console.error('deleteFileById error:', error);
+    logger.error({ err: error }, 'deleteFileById error');
     res.status(500).json({ message: 'Dosya silinemedi.' });
   }
 };
@@ -228,7 +234,7 @@ export const getTenantUsers = async (req: Request, res: Response) => {
 
     res.json({ users });
   } catch (error) {
-    console.error('getTenantUsers error:', error);
+    logger.error({ err: error }, 'getTenantUsers error');
     res.status(500).json({ message: 'Kullanıcılar alınamadı.' });
   }
 };
@@ -247,7 +253,7 @@ export const getAllTenants = async (req: Request, res: Response) => {
     });
     res.json(tenants);
   } catch (error) {
-    console.error('getAllTenants error:', error);
+    logger.error({ err: error }, 'getAllTenants error');
     res.status(500).json({ message: 'Tenantlar alınamadı.' });
   }
 };
@@ -288,6 +294,7 @@ export const deleteVideoById = async (req: Request, res: Response) => {
     }
 
     await prisma.video.delete({ where: { id: numericId } });
+    logger.warn(`User ${userId} deleted video ${numericId}`);
 
     // İlişkili dosyayı da sil
     if (video.file) {
@@ -296,7 +303,7 @@ export const deleteVideoById = async (req: Request, res: Response) => {
 
     res.json({ message: 'Video silindi.' });
   } catch (error) {
-    console.error('deleteVideoById error:', error);
+    logger.error({ err: error }, 'deleteVideoById error');
     res.status(500).json({ message: 'Video silinemedi.' });
   }
 };
@@ -332,9 +339,10 @@ export const getAdminVideos = async (req: Request, res: Response) => {
       orderBy: { uploadedAt: 'desc' },
     });
 
+    logger.info(`Admin ${userId} fetched ${videos.length} videos`);
     res.json(videos);
   } catch (error) {
-    console.error('getAdminVideos error:', error);
+    logger.error({ err: error }, 'getAdminVideos error');
     res.status(500).json({ message: 'Videolar alınamadı.' });
   }
 };

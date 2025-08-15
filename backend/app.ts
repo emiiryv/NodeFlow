@@ -15,11 +15,19 @@ import { corsOptions } from './middlewares/corsConfig';
 
 import queueDashboard from './utils/queueDashboard';
 import { authenticate, secureQueueDashboard } from './middlewares/authMiddleware';
+import { errorHandler } from './middlewares/errorHandler';
+import logger from './utils/logger';
 
 dotenv.config();
 
 const app = express();
 app.use(cors(corsOptions));
+
+// Logging middleware: log each request
+app.use((req, res, next) => {
+  logger.info(`${req.method} ${req.originalUrl}`);
+  next();
+});
 
 app.use(cookieParser());
 const csrfProtection = csrf({ cookie: true });
@@ -65,5 +73,8 @@ app.use('/api', securityRoutes);
 // bull-board ise bir UI servisidir, kendi ExpressAdapter’ına sahip middleware’dir.
 // Bu yüzden adminRoutes'a değil doğrudan app.ts içine, diğer route’larla eşdeğer bir middleware olarak eklenmesi gerekir.
 app.use('/admin/queues', authenticate, secureQueueDashboard, queueDashboard.getRouter());
+
+// Error handling middleware should be the last
+app.use(errorHandler);
 
 export default app;

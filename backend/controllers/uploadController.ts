@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../models/db';
 import { uploadToAzure, parseAzureBlobUrl } from '../services/azureService';
 import { compressBuffer } from '../utils/compression';
+import logger from '../utils/logger';
 
 export const handleUpload = async (req: Request, res: Response) => {
   try {
@@ -64,13 +65,16 @@ export const handleUpload = async (req: Request, res: Response) => {
       },
     });
 
+    logger.info(`File uploaded successfully: ${azureUploadResult.filename}`);
+
     return res.status(201).json({
       message: 'Dosya başarıyla yüklendi.',
       file: newFile,
       blobUri: newFile.url,
     });
   } catch (error) {
-    console.error('Dosya yükleme hatası:', error);
+    logger.error('Dosya yükleme hatası');
+    logger.error(error instanceof Error ? error.message : String(error));
     return res
       .status(500)
       .json({ message: 'Dosya yüklenirken bir hata oluştu.' });
