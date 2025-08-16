@@ -19,6 +19,7 @@ import TenantFilesPage from './pages/TenantFilesPage';
 import AdminFileManagementPage from './pages/AdminFileManagementPage';
 import AdminUserManagementPage from './pages/AdminUserManagementPage';
 import Layout from './components/Layout';
+import VideoChatPage from './pages/VideoChatPage';
 
 const colorSchemeManager = localStorageColorSchemeManager({
   key: 'nodeflow-color-scheme', // index.html'deki preload script ile AYNI
@@ -50,6 +51,7 @@ function App() {
             <Route path="/tenant-files" element={<TenantFilesPage />} />
             <Route path="/admin/file-management" element={<AdminFileManagementPage />} />
             <Route path="/admin/user-management" element={<AdminUserManagementPage />} />
+            <Route path="/video-call" element={<VideoChatPage />} />
           </Routes>
         </Layout>
       </BrowserRouter>

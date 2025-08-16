@@ -55,6 +55,7 @@ const Navbar: React.FC = () => {
               </Button>
             )}
             <Button variant="subtle" size="md" component={Link} to="/stats">İstatistikler</Button>
+            <Button variant="subtle" size="md" component={Link} to="/video-call">Görüntülü Görüşme</Button>
             {(userRole === 'admin' || userRole === 'tenantadmin') && (
               <Menu>
                 <Menu.Target>

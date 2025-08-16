@@ -7,6 +7,8 @@ import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
+import { setupWebSocket } from './socketServer';
+import { wss } from './socketServer';
 dotenv.config();
 app.use(cookieParser());
 
@@ -28,9 +30,17 @@ const PORT = process.env.PORT || 3001;
 
 scheduleBlobCleanup();
 
-https.createServer({ key, cert }, app).listen(PORT, () => {
+const server = https.createServer({ key, cert }, app);
+server.listen(PORT, () => {
   console.log(`NodeFlow backend running at https://localhost:${PORT}`);
 });
+
+server.on('upgrade', (request, socket, head) => {
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    wss.emit('connection', ws, request);
+  });
+});
+setupWebSocket(server);
 
 import './jobs/thumbnailWorker';
 import './jobs/metadataWorker';
