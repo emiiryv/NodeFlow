@@ -21,6 +21,7 @@ import logger from './utils/logger';
 dotenv.config();
 
 const app = express();
+app.disable('etag');
 app.use(cors(corsOptions));
 
 // Logging middleware: log each request

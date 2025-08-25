@@ -26,7 +26,7 @@ app.use(cors({
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT ;
 
 scheduleBlobCleanup();
 
@@ -36,9 +36,15 @@ server.listen(PORT, () => {
 });
 
 server.on('upgrade', (request, socket, head) => {
-  wss.handleUpgrade(request, socket, head, (ws) => {
-    wss.emit('connection', ws, request);
-  });
+  const { pathname } = new URL(request.url!, `https://${request.headers.host}`);
+
+  if (pathname === '/ws') {
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit('connection', ws, request);
+    });
+  } else {
+    socket.destroy(); // Reject unexpected upgrade requests
+  }
 });
 setupWebSocket(server);
 

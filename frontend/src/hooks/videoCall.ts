@@ -129,15 +129,51 @@ export function useVideoCall(): UseVideoCallExtended {
 
   // WebSocket setup and message handling
   useEffect(() => {
-    const ws = new WebSocket('wss://localhost:3000');
+    console.log('[DEBUG] Attempting WebSocket connection to wss://localhost:3000/ws');
+    const ws = new WebSocket('wss://localhost:3000/ws');
     setSocket(ws);
+
     ws.onopen = () => {
-      console.log('[WS] Connected');
-      const userId = localStorage.getItem('userId');
-      console.log('[WS] userId from localStorage:', userId);
-      if (userId) {
-        ws.send(JSON.stringify({ type: 'join', payload: { id: userId } }));
-      }
+      console.log('[WS] Connected to wss://localhost:3000/ws');
+      fetch('https://localhost:3000/api/users/me?t=' + Date.now(), {
+        method: 'GET',
+        credentials: 'include',
+        cache: 'no-store',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Pragma': 'no-cache',
+          'Cache-Control': 'no-cache'
+        }
+      })
+        .then(async res => {
+          if (res.status !== 200) {
+            throw new Error(`Unexpected status: ${res.status}`);
+          }
+
+          const contentType = res.headers.get('content-type');
+          if (!contentType?.includes('application/json')) {
+            throw new Error('Empty or invalid JSON response');
+          }
+
+          const data = await res.json();
+          const userId = data?.user?.id?.toString();
+          console.log('[WS] userId from /api/users/me:', userId);
+          if (userId) {
+            ws.send(JSON.stringify({ type: 'join', payload: { id: userId } }));
+          }
+        })
+        .catch(err => {
+          console.error('[WS] Failed to fetch user info:', err);
+        });
+    };
+
+    ws.onerror = (err) => {
+      console.error('[WS] Connection error:', err);
+    };
+
+    ws.onclose = () => {
+      console.warn('[WS] Connection closed');
     };
 
     ws.onmessage = async (event) => {
@@ -158,7 +194,6 @@ export function useVideoCall(): UseVideoCallExtended {
     };
 
     return () => ws.close();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Start a call: create offer, send via WebSocket

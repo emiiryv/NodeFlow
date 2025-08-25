@@ -11,9 +11,10 @@ const root = ReactDOM.createRoot(
 );
 
 root.render(
-  <React.StrictMode>
+  // Geçici olarak StrictMode'u kaldırdık ws testi için
+  <React.Fragment>
     <App />
-  </React.StrictMode>
+  </React.Fragment>
 );
 
 reportWebVitals();
